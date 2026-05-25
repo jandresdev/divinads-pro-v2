@@ -30,7 +30,7 @@ const PLANES = [
       'Predicciones ML de ROAS',
       'Soporte prioritario',
     ],
-    cta: 'Empezar con Pro',
+    cta: 'Suscribirse',
     destacado: true,
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
   },
