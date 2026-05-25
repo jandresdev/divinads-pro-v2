@@ -16,6 +16,7 @@ import rutasAgente from './routes/agente'
 import rutasChat from './routes/chat'
 import rutasMetaConfig from './routes/meta-config'
 import rutasSincronizacion from './routes/sincronizacion'
+import rutasPredicciones from './routes/predicciones'
 import { iniciarScheduler, detenerScheduler } from './jobs/scheduler'
 import logger from './utils/logger'
 
@@ -71,6 +72,7 @@ app.use('/api/agente', rutasAgente)
 app.use('/api/chat', rutasChat)
 app.use('/api/meta', rutasMetaConfig)
 app.use('/api/sincronizacion', rutasSincronizacion)
+app.use('/api/predicciones', rutasPredicciones)
 
 // Ruta raíz
 app.get('/', (req, res) => {

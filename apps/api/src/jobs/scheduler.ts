@@ -3,6 +3,7 @@ import logger from '../utils/logger'
 import { jobSincronizarTodosLosTenants } from './sincronizar-meta'
 import { jobCalcularFeatures } from './calcular-features'
 import { jobDetectarAnomalias } from './detectar-anomalias'
+import { jobEntrenarModelos } from './entrenar-modelos'
 
 // ---------------------------------------------------------------------------
 // Tipos y definición de jobs
@@ -37,6 +38,13 @@ const JOBS: CronJob[] = [
     nombre:    'detectar-anomalias',
     expresion: '10,25,40,55 * * * *', // A los :10, :25, :40 y :55 de cada hora
     handler:   jobDetectarAnomalias,
+  },
+  {
+    // Pipeline de predicción ML: regresión lineal sobre historial de ROAS por campaña
+    // Corre a las 3am cada 2 días — predicciones no necesitan actualizarse con mayor frecuencia
+    nombre:    'generar-predicciones',
+    expresion: '0 3 */2 * *', // A las 3am cada 2 días
+    handler:   jobEntrenarModelos,
   },
 ]
 
