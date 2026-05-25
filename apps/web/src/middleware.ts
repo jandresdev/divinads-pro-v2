@@ -2,7 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rutas que requieren autenticación
-const RUTAS_PROTEGIDAS = ['/dashboard', '/campañas', '/analiticas', '/configuracion']
+const RUTAS_PROTEGIDAS = [
+  '/dashboard',
+  '/campañas',
+  '/campanias',
+  '/analiticas',
+  '/chat',
+  '/configuracion',
+]
 // Rutas solo para usuarios no autenticados
 const RUTAS_AUTH = ['/auth/iniciar-sesion', '/auth/registrarse', '/auth/olvide-contraseña']
 

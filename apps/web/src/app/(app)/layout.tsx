@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
+import Sidebar from '@/components/layout/Sidebar'
+import Topbar from '@/components/layout/Topbar'
 
-// Layout protegido: verifica autenticación antes de mostrar contenido
+// Layout protegido para todas las rutas de la aplicación autenticada
 export default async function LayoutApp({
   children,
 }: {
@@ -9,38 +11,36 @@ export default async function LayoutApp({
 }) {
   const supabase = await crearClienteServidor()
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  // Verificar autenticación — redirigir si no hay sesión activa
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
-  // Si no hay usuario autenticado, redirigir al login
   if (error || !user) {
     redirect('/auth/iniciar-sesion')
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* TODO Paso 4: Agregar Sidebar + Topbar completos */}
-      <div className="flex">
-        {/* Sidebar placeholder */}
-        <aside className="w-64 min-h-screen bg-card border-r border-border p-4 hidden lg:block">
-          <div className="space-y-2">
-            <h2 className="text-lg font-bold text-foreground mb-6">DivinADS</h2>
-            <a href="/dashboard" className="flex items-center gap-2 px-3 py-2 rounded-lg text-foreground hover:bg-background transition-colors text-sm">
-              📊 Dashboard
-            </a>
-            <a href="/campañas" className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:bg-background transition-colors text-sm">
-              📣 Campañas
-            </a>
-            <a href="/analiticas" className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:bg-background transition-colors text-sm">
-              📈 Analíticas
-            </a>
-            <a href="/configuracion" className="flex items-center gap-2 px-3 py-2 rounded-lg text-muted-foreground hover:bg-background transition-colors text-sm">
-              ⚙️ Configuración
-            </a>
-          </div>
-        </aside>
+  // Datos del usuario para los componentes de layout
+  const datosUsuario = {
+    email: user.email!,
+    nombre: (user.user_metadata?.nombre as string | undefined) ?? undefined,
+  }
 
-        {/* Contenido principal */}
-        <main className="flex-1 p-6">
+  return (
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar permanente — visible solo en desktop (lg+) */}
+      <div className="hidden lg:flex lg:shrink-0">
+        <Sidebar />
+      </div>
+
+      {/* Área principal: topbar + contenido scrolleable */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Topbar: contiene el menú móvil internamente */}
+        <Topbar usuario={datosUsuario} />
+
+        {/* Zona de contenido con scroll vertical */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
       </div>
