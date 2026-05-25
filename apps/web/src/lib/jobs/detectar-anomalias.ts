@@ -180,7 +180,7 @@ export async function jobDetectarAnomalias(): Promise<void> {
   let totalAnomaliasDesactivadas = 0
   let campañasConError           = 0
 
-  for (const snapshot of snapshots as FeatureSnapshot[]) {
+  for (const snapshot of snapshots as unknown as FeatureSnapshot[]) {
     // Extraer nombre de campaña desde el join (puede ser null si la relación falló)
     const nombreCampaña = snapshot.campaigns?.nombre ?? 'Campaña sin nombre'
     const features      = (snapshot.features as Record<string, number>) ?? {}

@@ -79,7 +79,8 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
     const gastoPorTipo: Record<string, number> = {}
     let totalCentavos = 0
 
-    for (const campaña of campañas) {
+    type FilaPresupuesto = { tipo_campaña?: string | null; daily_metrics: { gasto_centavos?: number; fecha: string }[] }
+    for (const campaña of campañas as unknown as FilaPresupuesto[]) {
       const tipo = campaña.tipo_campaña ?? 'Otro'
       const metricas = Array.isArray(campaña.daily_metrics)
         ? campaña.daily_metrics

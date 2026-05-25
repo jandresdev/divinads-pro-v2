@@ -140,7 +140,7 @@ async function obtenerCampañas(): Promise<DatoCampaña[]> {
     if (error || !filas || filas.length === 0) return DEMO_CAMPAÑAS
 
     // Transformar filas al formato que espera TablaCampañas
-    const campañas: DatoCampaña[] = (filas as FilaCampaña[])
+    const campañas: DatoCampaña[] = (filas as unknown as FilaCampaña[])
       .map((fila) => {
         // Normalizar daily_metrics a array
         const metricas: FilaMetrica[] = Array.isArray(fila.daily_metrics)

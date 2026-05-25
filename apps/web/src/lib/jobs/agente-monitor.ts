@@ -40,8 +40,12 @@ Usa las herramientas disponibles para recopilar contexto completo y proporciona 
 
     console.info(`[agente-monitor] Enviando anomalía al agente Claude para análisis: anomaliaId=${anomaliaId} campaign=${campaignId} tipo=${tipoAnomalia} severidad=${severidadScore}`)
 
+    // Crear despachador vinculado al tenant para que las herramientas filtren por él
+    const despachador = (nombre: string, input: Record<string, unknown>) =>
+      ejecutarHerramienta(nombre, input, tenantId)
+
     // Ejecutar el agente con la capacidad de invocar herramientas
-    const respuesta = await ejecutarAgente(mensajeAnalisis, ejecutarHerramienta)
+    const respuesta = await ejecutarAgente(mensajeAnalisis, despachador)
 
     // Guardar el análisis completo en agent_actions como registro de auditoría
     const { error: errorInsert } = await supabaseAdmin

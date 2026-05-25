@@ -1,4 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // Crear cliente de Supabase para el servidor (Server Components, Route Handlers)
@@ -13,7 +13,7 @@ export async function crearClienteServidor() {
         getAll() {
           return almacenCookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               almacenCookies.set(name, value, options)
