@@ -1,12 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { crearClienteNavegador } from '@/lib/supabase/cliente'
 
 export default function PaginaIniciarSesion() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [contraseña, setContraseña] = useState('')
   const [cargando, setCargando] = useState(false)
@@ -37,9 +35,8 @@ export default function PaginaIniciarSesion() {
         return
       }
 
-      // Redirigir al dashboard
-      router.push('/dashboard')
-      router.refresh()
+      // Redirección dura para que el middleware lea la cookie de sesión correctamente
+      window.location.href = '/dashboard'
     } finally {
       setCargando(false)
     }
