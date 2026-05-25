@@ -8,26 +8,24 @@ export async function middleware(solicitud: NextRequest) {
     },
   })
 
-  // Solo refresca las cookies de sesión de Supabase si están próximas a expirar.
-  // La protección de rutas la manejan los layouts de servidor con getUser().
+  // Usa la API get/set/remove de @supabase/ssr 0.3.x para refrescar el token
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return solicitud.cookies.getAll()
+        get(name: string) {
+          return solicitud.cookies.get(name)?.value
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            solicitud.cookies.set(name, value)
-          )
-          respuesta = NextResponse.next({
-            request: solicitud,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            respuesta.cookies.set(name, value, options)
-          )
+        set(name: string, value: string, options: CookieOptions) {
+          solicitud.cookies.set({ name, value, ...options })
+          respuesta = NextResponse.next({ request: solicitud })
+          respuesta.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          solicitud.cookies.set({ name, value: '', ...options })
+          respuesta = NextResponse.next({ request: solicitud })
+          respuesta.cookies.set({ name, value: '', ...options })
         },
       },
     }
