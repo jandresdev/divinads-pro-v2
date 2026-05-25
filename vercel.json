@@ -1,0 +1,32 @@
+{
+  "buildCommand": "pnpm --filter web build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/sincronizar-meta",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/calcular-features",
+      "schedule": "5,20,35,50 * * * *"
+    },
+    {
+      "path": "/api/cron/detectar-anomalias",
+      "schedule": "10,25,40,55 * * * *"
+    },
+    {
+      "path": "/api/cron/agente-monitor",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/validar-resultados",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/entrenar-modelos",
+      "schedule": "0 3 */2 * *"
+    }
+  ]
+}

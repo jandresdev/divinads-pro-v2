@@ -135,6 +135,7 @@ jobs:
           # Variables de entorno placeholder para el build de Next.js
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          CRON_SECRET: placeholder
 
       - name: Confirmar build exitoso
         run: |
