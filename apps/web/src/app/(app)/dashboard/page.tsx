@@ -1,6 +1,7 @@
 // Página principal del dashboard — Server Component
 import GrupoKPIs from '@/components/dashboard/GrupoKPIs'
 import ContenedorGraficoMultimetrica from '@/components/dashboard/ContenedorGraficoMultimetrica'
+import ContenedorPresupuesto from '@/components/dashboard/ContenedorPresupuesto'
 
 export default async function PaginaDashboard() {
   return (
@@ -35,11 +36,8 @@ export default async function PaginaDashboard() {
           <ContenedorGraficoMultimetrica />
         </div>
 
-        {/* Gráfico dona de asignación de presupuesto — skeleton */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="h-5 w-40 bg-muted/20 rounded skeleton mb-4" />
-          <div className="h-64 bg-muted/10 rounded-full skeleton mx-auto max-w-48" />
-        </div>
+        {/* Gráfico dona de asignación de presupuesto por tipo de campaña */}
+        <ContenedorPresupuesto />
       </div>
 
       {/* Fila de tabla + alertas */}
