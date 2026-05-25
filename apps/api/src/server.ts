@@ -17,6 +17,7 @@ import rutasChat from './routes/chat'
 import rutasMetaConfig from './routes/meta-config'
 import rutasSincronizacion from './routes/sincronizacion'
 import rutasPredicciones from './routes/predicciones'
+import rutasWebhooks from './routes/webhooks'
 import { iniciarScheduler, detenerScheduler } from './jobs/scheduler'
 import logger from './utils/logger'
 
@@ -73,6 +74,8 @@ app.use('/api/chat', rutasChat)
 app.use('/api/meta', rutasMetaConfig)
 app.use('/api/sincronizacion', rutasSincronizacion)
 app.use('/api/predicciones', rutasPredicciones)
+// Webhooks de Stripe — debe ir antes del middleware de JSON para recibir raw body en producción
+app.use('/api/webhooks', rutasWebhooks)
 
 // Ruta raíz
 app.get('/', (req, res) => {
