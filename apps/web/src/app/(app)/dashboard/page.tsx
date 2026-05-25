@@ -3,6 +3,7 @@ import GrupoKPIs from '@/components/dashboard/GrupoKPIs'
 import ContenedorGraficoMultimetrica from '@/components/dashboard/ContenedorGraficoMultimetrica'
 import ContenedorPresupuesto from '@/components/dashboard/ContenedorPresupuesto'
 import ContenedorTablaCampañas from '@/components/dashboard/ContenedorTablaCampañas'
+import ContenedorPanelAlertas from '@/components/dashboard/ContenedorPanelAlertas'
 
 export default async function PaginaDashboard() {
   return (
@@ -48,15 +49,8 @@ export default async function PaginaDashboard() {
           <ContenedorTablaCampañas />
         </div>
 
-        {/* Panel de alertas y anomalías — skeleton */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="h-5 w-28 bg-muted/20 rounded skeleton mb-4" />
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted/10 rounded skeleton" />
-            ))}
-          </div>
-        </div>
+        {/* Panel de alertas y anomalías — alertas reales desde Supabase con fallback a demo */}
+        <ContenedorPanelAlertas />
       </div>
     </div>
   )
