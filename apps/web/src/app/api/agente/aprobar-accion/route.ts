@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 import { ejecutarAccion, TipoAccionEjecutable } from '@/lib/services/ejecutor-acciones'
 
 // POST /api/agente/aprobar-accion — aprobar o rechazar una acción recomendada
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Obtener la acción verificando que pertenezca al tenant autenticado
-    const { data: accion } = await supabaseAdmin
+    const { data: accion } = await usuario.supabase
       .from('agent_actions')
       .select('*')
       .eq('id', accionId)
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     // Caso: el usuario rechazó la acción — registrar y finalizar
     // -----------------------------------------------------------------------
     if (!aprobada) {
-      await supabaseAdmin
+      await usuario.supabase
         .from('agent_actions')
         .update({
           estado: 'rechazada',
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     )
 
     // Actualizar el estado de la acción según el resultado de la ejecución
-    await supabaseAdmin
+    await usuario.supabase
       .from('agent_actions')
       .update({
         estado: resultado.exitoso ? 'ejecutada' : 'error_ejecucion',

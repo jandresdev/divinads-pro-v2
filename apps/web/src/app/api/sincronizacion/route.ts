@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 import { ejecutarSincronizacion } from '@/lib/jobs/sincronizar-meta'
 
 // POST /api/sincronizacion — dispara una sincronización inmediata para el tenant autenticado
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Obtener la cuenta Meta activa del tenant
-    const { data: cuenta, error: errorCuenta } = await supabaseAdmin
+    const { data: cuenta, error: errorCuenta } = await usuario.supabase
       .from('meta_accounts')
       .select('access_token, ad_account_id')
       .eq('tenant_id', usuario.tenantId)
@@ -52,18 +52,18 @@ export async function GET(req: NextRequest) {
   try {
     // La forma más directa de saber el último sync es mirar el updated_at más reciente
     // en daily_metrics — ese campo se actualiza en cada upsert exitoso
-    const { data: ultimaMetrica } = await supabaseAdmin
+    const { data: ultimaMetrica } = await usuario.supabase
       .from('daily_metrics')
-      .select('updated_at, fecha')
+      .select('created_at, fecha')
       .eq('tenant_id', usuario.tenantId)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
       .single()
 
     return NextResponse.json({
       exito: true,
       datos: {
-        ultimaActualizacion: ultimaMetrica?.updated_at ?? null,
+        ultimaActualizacion: ultimaMetrica?.created_at ?? null,
         ultimaFecha:         ultimaMetrica?.fecha      ?? null,
         proximaActualizacion: 'En los próximos 15 minutos',
         frecuencia:          'Cada 15 minutos automáticamente',

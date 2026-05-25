@@ -57,7 +57,7 @@ async function obtenerMetricasCampaña(
   const { data, error } = await supabaseAdmin
     .from('daily_metrics')
     .select(
-      'fecha, roas, gasto_centavos, ctr, cpc_centavos, conversiones, cpa_centavos, frecuencia, alcance'
+      'fecha, roas, gasto_centavos, ctr, cpc, conversiones, cpa, frecuencia, alcance'
     )
     .eq('tenant_id', tenantId)
     .eq('campaign_id', campaignId)
@@ -75,9 +75,9 @@ async function obtenerMetricasCampaña(
     roas:         m.roas            ?? 0,
     gasto:       (m.gasto_centavos  ?? 0) / 100,
     ctr:          m.ctr             ?? 0,
-    cpc:         (m.cpc_centavos    ?? 0) / 100,
+    cpc:          m.cpc             ?? 0,
     conversiones: m.conversiones    ?? 0,
-    cpa:         (m.cpa_centavos    ?? 0) / 100,
+    cpa:          m.cpa             ?? 0,
     frecuencia:   m.frecuencia      ?? 0,
     alcance:      m.alcance         ?? 0,
   }))

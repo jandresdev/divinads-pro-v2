@@ -3,6 +3,7 @@
 // Componente cliente — tabla de top campañas con ordenamiento interactivo por columna
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { cn, formatearMoneda, formatearNumero } from '@/lib/utils'
 
@@ -99,10 +100,9 @@ export default function TablaCampañas({ campañas }: PropsTablaCampañas) {
             Ordenado por rendimiento · {campañas.length} campañas activas
           </p>
         </div>
-        {/* Botón placeholder — se conectará con vista completa en paso posterior */}
-        <button className="text-xs text-primary hover:underline transition-opacity">
+        <Link href="/campanias" className="text-xs text-primary hover:underline transition-opacity">
           Ver todas →
-        </button>
+        </Link>
       </div>
 
       {/* ── Tabla con scroll horizontal en móvil ──────────────────────────── */}

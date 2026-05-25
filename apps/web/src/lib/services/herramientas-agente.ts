@@ -29,7 +29,7 @@ export async function obtenerMetricasCampaña(
   const { data, error } = await supabaseAdmin
     .from('daily_metrics')
     .select(
-      'fecha, roas, gasto_centavos, ctr, cpc_centavos, conversiones, cpa_centavos, frecuencia'
+      'fecha, roas, gasto_centavos, ctr, cpc, conversiones, cpa, frecuencia'
     )
     .eq('campaign_id', campaignId)
     .eq('tenant_id', tenantId)
@@ -51,9 +51,9 @@ export async function obtenerMetricasCampaña(
     roas: m.roas?.toFixed(2) ?? '0,00',
     gasto_usd: ((m.gasto_centavos ?? 0) / 100).toFixed(2),
     ctr_pct: m.ctr?.toFixed(2) ?? '0,00',
-    cpc_usd: ((m.cpc_centavos ?? 0) / 100).toFixed(2),
+    cpc_usd: (m.cpc ?? 0).toFixed(2),
     conversiones: m.conversiones ?? 0,
-    cpa_usd: ((m.cpa_centavos ?? 0) / 100).toFixed(2),
+    cpa_usd: (m.cpa ?? 0).toFixed(2),
     frecuencia: m.frecuencia?.toFixed(2) ?? '0,00',
   }))
 

@@ -132,22 +132,20 @@ async function sincronizarMetricas(
       .from('daily_metrics')
       .upsert(
         {
-          tenant_id:        tenantId,
-          campaign_id:      campaña.id,                     // UUID interno de campaigns
-          meta_campaign_id: insight.campaign_id,            // ID de Meta (para referencia)
+          tenant_id:    tenantId,
+          campaign_id:  campaña.id,
           fecha,
-          gasto_centavos:   Math.round(parseFloat(insight.spend       || '0') * 100),
-          impresiones:      parseInt(insight.impressions               || '0'),
-          clicks:           parseInt(insight.clicks                    || '0'),
-          ctr:              parseFloat(insight.ctr                     || '0'),
-          cpc_centavos:     Math.round(parseFloat(insight.cpc         || '0') * 100),
-          cpm_centavos:     Math.round(parseFloat(insight.cpm         || '0') * 100),
-          alcance:          parseInt(insight.reach                     || '0'),
-          frecuencia:       parseFloat(insight.frequency              || '0'),
-          conversiones:     extraerConversiones(insight.actions),
-          cpa_centavos:     Math.round(extraerCPA(insight.cost_per_action_type) * 100),
-          roas:             extraerROAS(insight.purchase_roas),
-          updated_at:       new Date().toISOString(),
+          gasto_centavos: Math.round(parseFloat(insight.spend || '0') * 100),
+          impresiones:    parseInt(insight.impressions         || '0'),
+          clics:          parseInt(insight.clicks              || '0'),
+          ctr:            parseFloat(insight.ctr               || '0'),
+          cpc:            parseFloat(insight.cpc               || '0'),
+          cpm:            parseFloat(insight.cpm               || '0'),
+          alcance:        parseInt(insight.reach               || '0'),
+          frecuencia:     parseFloat(insight.frequency         || '0'),
+          conversiones:   extraerConversiones(insight.actions),
+          cpa:            extraerCPA(insight.cost_per_action_type),
+          roas:           extraerROAS(insight.purchase_roas),
         },
         { onConflict: 'tenant_id,campaign_id,fecha' },
       )

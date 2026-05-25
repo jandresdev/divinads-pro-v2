@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 import { ejecutarAgente } from '@/lib/services/claude-cliente'
 import { ejecutarHerramienta } from '@/lib/services/herramientas-agente'
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Obtener la anomalía verificando que pertenezca al tenant autenticado
-    const { data: anomalia } = await supabaseAdmin
+    const { data: anomalia } = await usuario.supabase
       .from('anomalies')
       .select('tipo, titulo, severidad_score')
       .eq('id', anomaliaId)
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verificar que campaignId también pertenezca al tenant autenticado (previene IDOR)
-    const { data: campana } = await supabaseAdmin
+    const { data: campana } = await usuario.supabase
       .from('campaigns')
       .select('id')
       .eq('id', campaignId)

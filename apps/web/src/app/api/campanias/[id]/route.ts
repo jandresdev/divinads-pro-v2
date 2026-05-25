@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
 // GET /api/campanias/:id — detalle de campaña
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
 
   try {
     const { id } = await params
-    const { data: campaña, error } = await supabaseAdmin
+    const { data: campaña, error } = await usuario.supabase
       .from('campaigns')
       .select('*, daily_metrics(fecha, gasto_centavos, roas, conversiones, ctr, cpc, cpa)')
       .eq('id', id)
@@ -48,7 +48,7 @@ export async function PATCH(
     if (tipo_campaña !== undefined) updateData.tipo_campaña = tipo_campaña
     if (presupuesto_diario_centavos !== undefined) updateData.presupuesto_diario_centavos = presupuesto_diario_centavos
 
-    const { data: campaña, error } = await supabaseAdmin
+    const { data: campaña, error } = await usuario.supabase
       .from('campaigns')
       .update(updateData)
       .eq('id', id)

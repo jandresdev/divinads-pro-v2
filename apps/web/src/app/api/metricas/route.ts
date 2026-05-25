@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
 // GET /api/metricas — KPI agregados para el tenant
 export async function GET(req: NextRequest) {
@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     const fechaHasta = hasta ?? new Date().toISOString().split('T')[0]
     const fechaDesde = desde ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const { data: metricas, error } = await supabaseAdmin
+    const { data: metricas, error } = await usuario.supabase
       .from('daily_metrics')
-      .select('fecha, gasto_centavos, roas, ctr, cpc_centavos, conversiones, cpa_centavos')
+      .select('fecha, gasto_centavos, roas, ctr, cpc, conversiones, cpa')
       .eq('tenant_id', usuario.tenantId)
       .gte('fecha', fechaDesde)
       .lte('fecha', fechaHasta)

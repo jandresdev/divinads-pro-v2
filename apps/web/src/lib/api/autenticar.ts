@@ -4,47 +4,92 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// Cliente admin con Service Role para operaciones del servidor
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+// Cliente admin con Service Role — inicializado de forma lazy para evitar
+// crash en módulo cuando SUPABASE_SERVICE_ROLE_KEY no está configurado.
+// Usa el anon key como fallback en dev local (queries respetarán RLS).
+let _adminClient: ReturnType<typeof createClient> | null = null
+
+export function getSupabaseAdmin(): ReturnType<typeof createClient> {
+  if (!_adminClient) {
+    _adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+  }
+  return _adminClient
+}
+
+// Proxy para compatibilidad retroactiva con código que importa `supabaseAdmin` directamente.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const supabaseAdmin: any = new Proxy({}, {
+  get(_, prop: string | symbol) {
+    const client = getSupabaseAdmin()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const val = (client as any)[prop]
+    return typeof val === 'function' ? val.bind(client) : val
+  },
+})
 
 export interface UsuarioAutenticado {
   id: string
   email: string
   tenantId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any  // cliente autenticado con sesión del usuario — respeta RLS
 }
 
-// Resuelve el tenant_id a partir del user.id
-async function resolverTenant(userId: string, email: string): Promise<UsuarioAutenticado> {
-  const { data: miembro } = await supabaseAdmin
-    .from('tenant_members').select('tenant_id').eq('user_id', userId).single()
-  return { id: userId, email, tenantId: miembro?.tenant_id ?? userId }
+// Resuelve el tenant_id usando el cliente del usuario (respeta RLS en tenant_members)
+async function resolverTenant(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  email: string
+): Promise<UsuarioAutenticado> {
+  const { data: miembro } = await supabase
+    .from('tenant_members')
+    .select('tenant_id')
+    .eq('user_id', userId)
+    .single()
+  return { id: userId, email, tenantId: miembro?.tenant_id ?? userId, supabase }
 }
 
-// Autenticar request: soporta Bearer token (llamadas programáticas) y
-// cookies de sesión Supabase (llamadas desde el navegador en el mismo origen)
+// Autenticar request: soporta Bearer token y cookies de sesión Supabase
 export async function autenticarRequest(req: NextRequest): Promise<UsuarioAutenticado | null> {
-  // 1. Intentar Bearer token (para llamadas programáticas o desde mobile)
+  // 1. Intentar Bearer token (llamadas programáticas)
   const authHeader = req.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1]
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
-    if (!error && user) return resolverTenant(user.id, user.email!)
+    // Cliente anon + token del usuario en el header → respeta RLS con sesión del usuario
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      }
+    )
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (!error && user) return resolverTenant(supabase, user.id, user.email!)
   }
 
   // 2. Fallback: sesión de cookie (llamadas desde el mismo origen / dashboard)
+  // Usa la API get/set/remove de @supabase/ssr 0.3.x (no getAll/setAll de 0.5+)
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll() } }
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
     )
     const { data: { user }, error } = await supabase.auth.getUser()
-    if (!error && user) return resolverTenant(user.id, user.email!)
+    if (!error && user) return resolverTenant(supabase, user.id, user.email!)
   } catch {
     // cookies() puede lanzar fuera del contexto de request — ignorar silenciosamente
   }

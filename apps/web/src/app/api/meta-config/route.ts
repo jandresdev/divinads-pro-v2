@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 import { ClienteMetaAds, ErrorMetaAPI } from '@/lib/services/meta-ads-cliente'
 
 // GET /api/meta-config — estado de la integración Meta del tenant
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data: cuenta } = await supabaseAdmin
+    const { data: cuenta } = await usuario.supabase
       .from('meta_accounts')
       .select('id, ad_account_id, created_at, token_expiry')
       .eq('tenant_id', usuario.tenantId)
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       : `act_${ad_account_id}`
 
     // Guardar o actualizar la cuenta en Supabase (upsert por tenant_id)
-    const { data: cuenta, error } = await supabaseAdmin
+    const { data: cuenta, error } = await usuario.supabase
       .from('meta_accounts')
       .upsert(
         {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
 // GET /api/anomalias — listar anomalías activas
 export async function GET(req: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await usuario.supabase
       .from('anomalies')
       .select('*, campaigns(nombre, tipo_campaña)')
       .eq('tenant_id', usuario.tenantId)

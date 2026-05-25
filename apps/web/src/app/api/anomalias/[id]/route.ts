@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
 // PATCH /api/anomalias/:id — marcar revisada
 export async function PATCH(
@@ -14,7 +14,7 @@ export async function PATCH(
     const body = await req.json()
     const { revisada } = body
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await usuario.supabase
       .from('anomalies')
       .update({ revisada: Boolean(revisada), updated_at: new Date().toISOString() })
       .eq('id', id)
