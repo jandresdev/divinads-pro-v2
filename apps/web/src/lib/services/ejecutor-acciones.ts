@@ -13,12 +13,9 @@ export type TipoAccionEjecutable =
   | 'solo_monitorear'
 
 // Resultado estandarizado que devuelve la ejecución de cualquier acción
-interface ResultadoEjecucion {
-  // Indica si la acción se ejecutó exitosamente en Meta
+export interface ResultadoEjecucion {
   exitoso: boolean
-  // Mensaje descriptivo en español para mostrar al usuario
   mensaje: string
-  // Datos adicionales del resultado (presupuestos, estados, etc.)
   detalles?: Record<string, unknown>
 }
 
