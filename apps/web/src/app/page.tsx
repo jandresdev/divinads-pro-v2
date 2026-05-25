@@ -18,13 +18,13 @@ export default function HomePage() {
         </p>
         <div className="flex gap-4 justify-center pt-4">
           <a
-            href="/auth/login"
+            href="/auth/iniciar-sesion"
             className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
           >
             Iniciar Sesión
           </a>
           <a
-            href="/auth/register"
+            href="/auth/registrarse"
             className="px-6 py-3 border border-border text-foreground rounded-lg font-medium hover:bg-card transition-colors"
           >
             Registrarse

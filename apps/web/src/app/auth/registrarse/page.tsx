@@ -45,10 +45,19 @@ export default function PaginaRegistrarse() {
       })
 
       if (errorAuth) {
-        if (errorAuth.message.includes('already registered')) {
+        const msg = errorAuth.message.toLowerCase()
+        if (msg.includes('already registered') || msg.includes('user already exists')) {
           setError('Este email ya está registrado. ¿Quieres iniciar sesión?')
+        } else if (msg.includes('signups not allowed') || msg.includes('signup is disabled')) {
+          setError('El registro está temporalmente deshabilitado. Contacta al administrador.')
+        } else if (msg.includes('invalid email')) {
+          setError('El correo electrónico no es válido.')
+        } else if (msg.includes('password')) {
+          setError('La contraseña no cumple los requisitos mínimos de seguridad.')
+        } else if (msg.includes('rate limit') || msg.includes('too many')) {
+          setError('Demasiados intentos. Espera unos minutos e intenta de nuevo.')
         } else {
-          setError('Error al crear la cuenta. Intenta de nuevo.')
+          setError(`Error al crear la cuenta: ${errorAuth.message}`)
         }
         return
       }
