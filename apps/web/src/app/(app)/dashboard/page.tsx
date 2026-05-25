@@ -1,5 +1,6 @@
 // Página principal del dashboard — Server Component
-// Los datos reales de métricas se integrarán en los Pasos 5-10
+import GrupoKPIs from '@/components/dashboard/GrupoKPIs'
+
 export default async function PaginaDashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
@@ -23,23 +24,8 @@ export default async function PaginaDashboard() {
         ))}
       </div>
 
-      {/* KPI Cards — skeleton (6 métricas) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {['Gasto', 'ROAS', 'CTR', 'CPC', 'Conversiones', 'CPA'].map((kpi) => (
-          <div
-            key={kpi}
-            className="bg-card border border-border rounded-xl p-4 space-y-3"
-          >
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">
-              {kpi}
-            </p>
-            {/* Valor principal — skeleton */}
-            <div className="h-7 bg-muted/20 rounded skeleton" />
-            {/* Variación vs período anterior — skeleton */}
-            <div className="h-4 w-16 bg-muted/10 rounded skeleton" />
-          </div>
-        ))}
-      </div>
+      {/* KPI Cards — métricas reales desde Supabase (con fallback a datos demo) */}
+      <GrupoKPIs />
 
       {/* Fila de gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
