@@ -4,17 +4,18 @@ import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autent
 // GET /api/predicciones/:campaignId — predicciones históricas de una campaña específica (últimos 30 días)
 export async function GET(
   req: NextRequest,
-  { params }: { params: { campaignId: string } }
+  { params }: { params: Promise<{ campaignId: string }> }
 ) {
   const usuario = await autenticarRequest(req)
   if (!usuario) return noAutorizado()
 
   try {
+    const { campaignId } = await params
     const { data, error } = await supabaseAdmin
       .from('predictions')
       .select('*')
       .eq('tenant_id', usuario.tenantId)
-      .eq('campaign_id', params.campaignId)
+      .eq('campaign_id', campaignId)
       .order('fecha_prediccion', { ascending: false })
       .limit(30)
 

@@ -4,19 +4,20 @@ import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autent
 // PATCH /api/anomalias/:id — marcar revisada
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const usuario = await autenticarRequest(req)
   if (!usuario) return noAutorizado()
 
   try {
+    const { id } = await params
     const body = await req.json()
     const { revisada } = body
 
     const { data, error } = await supabaseAdmin
       .from('anomalies')
       .update({ revisada: Boolean(revisada), updated_at: new Date().toISOString() })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('tenant_id', usuario.tenantId)
       .select()
       .single()

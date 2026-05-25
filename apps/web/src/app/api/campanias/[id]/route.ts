@@ -4,16 +4,17 @@ import { autenticarRequest, noAutorizado, supabaseAdmin } from '@/lib/api/autent
 // GET /api/campanias/:id — detalle de campaña
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const usuario = await autenticarRequest(req)
   if (!usuario) return noAutorizado()
 
   try {
+    const { id } = await params
     const { data: campaña, error } = await supabaseAdmin
       .from('campaigns')
       .select('*, daily_metrics(fecha, gasto_centavos, roas, conversiones, ctr, cpc, cpa)')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('tenant_id', usuario.tenantId)
       .single()
 
@@ -31,12 +32,13 @@ export async function GET(
 // PATCH /api/campanias/:id — actualizar metadatos
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const usuario = await autenticarRequest(req)
   if (!usuario) return noAutorizado()
 
   try {
+    const { id } = await params
     const body = await req.json()
     const { nombre, meta_campaign_id, tipo_campaña, presupuesto_diario_centavos } = body
 
@@ -49,7 +51,7 @@ export async function PATCH(
     const { data: campaña, error } = await supabaseAdmin
       .from('campaigns')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('tenant_id', usuario.tenantId)
       .select()
       .single()
