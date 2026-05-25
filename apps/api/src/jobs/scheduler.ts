@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import logger from '../utils/logger'
 import { jobSincronizarTodosLosTenants } from './sincronizar-meta'
+import { jobCalcularFeatures } from './calcular-features'
 
 // ---------------------------------------------------------------------------
 // Tipos y definición de jobs
@@ -22,8 +23,14 @@ const JOBS: CronJob[] = [
     expresion: '*/15 * * * *', // Cada 15 minutos
     handler:   jobSincronizarTodosLosTenants,
   },
+  {
+    // Pipeline de feature engineering: calcula features estadísticos por campaña
+    // Corre 5 minutos después de la sincronización para tener datos frescos
+    nombre:    'calcular-features',
+    expresion: '5,20,35,50 * * * *', // A los :05, :20, :35 y :50 de cada hora
+    handler:   jobCalcularFeatures,
+  },
   // TODO Paso 15: detectar-anomalias — agregar job de detección de anomalías aquí
-  // TODO Paso 14: calcular-features — agregar pipeline de feature engineering aquí
 ]
 
 // ---------------------------------------------------------------------------
