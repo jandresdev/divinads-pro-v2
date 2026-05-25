@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 
-// Cliente de Anthropic inicializado con la clave de API del servidor
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+let _anthropic: Anthropic | null = null
+function getAnthropicClient(): Anthropic {
+  if (!_anthropic) {
+    _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+  }
+  return _anthropic
+}
 
 /**
  * POST /api/chat
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest) {
         let respuestaCompleta = ''
 
         // Iniciar el stream de mensajes con Claude Haiku (rápido y eficiente)
-        const messageStream = await anthropic.messages.stream({
+        const messageStream = await getAnthropicClient().messages.stream({
           model: 'claude-3-5-haiku-20241022',
           max_tokens: 1024,
           system: `Eres DivinADS Agent, asistente experto en Meta Ads y marketing digital especializado en LATAM.

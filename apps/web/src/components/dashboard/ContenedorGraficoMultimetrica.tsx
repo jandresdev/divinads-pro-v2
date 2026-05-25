@@ -35,7 +35,7 @@ interface DatoPunto {
  * Obtiene los últimos 30 días de métricas desde Supabase.
  * Si no hay sesión, no hay datos o falla la consulta, retorna datos demo.
  */
-async function obtenerDatosGrafico(): Promise<DatoPunto[]> {
+async function obtenerDatosGrafico(diasPeriodo: number): Promise<DatoPunto[]> {
   try {
     const supabase = await crearClienteServidor()
 
@@ -45,12 +45,15 @@ async function obtenerDatosGrafico(): Promise<DatoPunto[]> {
     } = await supabase.auth.getUser()
     if (!user) return generarDatosDemo30Dias()
 
-    // Consultar últimas 30 fechas con datos del tenant (RLS filtra automáticamente)
+    const fechaDesde = new Date(Date.now() - diasPeriodo * 86_400_000).toISOString().split('T')[0]
+
+    // Consultar el período seleccionado con datos del tenant (RLS filtra automáticamente)
     const { data: metricas, error } = await supabase
       .from('daily_metrics')
       .select('fecha, gasto_centavos, roas, conversiones')
+      .gte('fecha', fechaDesde)
       .order('fecha', { ascending: true })
-      .limit(30)
+      .limit(diasPeriodo + 5)
 
     // Sin datos o con error → caer silenciosamente a demo
     if (error || !metricas || metricas.length === 0) {
@@ -76,8 +79,8 @@ async function obtenerDatosGrafico(): Promise<DatoPunto[]> {
  * Contenedor server-side del gráfico multi-métrica.
  * Resuelve los datos antes de pasar al componente cliente.
  */
-export default async function ContenedorGraficoMultimetrica() {
-  const datos = await obtenerDatosGrafico()
+export default async function ContenedorGraficoMultimetrica({ diasPeriodo = 30 }: { diasPeriodo?: number }) {
+  const datos = await obtenerDatosGrafico(diasPeriodo)
 
   return <GraficoMultimetrica datos={datos} />
 }

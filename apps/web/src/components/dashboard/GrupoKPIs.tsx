@@ -77,7 +77,7 @@ function agregarMetricas(filas: FilaMetrica[]): MetricasAgregadas {
 }
 
 // Obtiene las métricas KPI del Supabase o retorna datos demo si no hay datos
-async function obtenerDatosKPI(): Promise<{
+async function obtenerDatosKPI(diasPeriodo: number): Promise<{
   gasto: MetricaKPI
   roas: MetricaKPI
   ctr: MetricaKPI
@@ -92,35 +92,25 @@ async function obtenerDatosKPI(): Promise<{
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return DATOS_DEMO_KPI
 
-    // Obtener las 2 fechas más recientes con métricas del tenant (RLS filtra por tenant)
-    const { data: fechasRaw } = await supabase
-      .from('daily_metrics')
-      .select('fecha')
-      .order('fecha', { ascending: false })
-      .limit(2)
+    const hoy = new Date()
+    const fechaFinActual   = hoy.toISOString().split('T')[0]
+    const fechaInicioActual = new Date(hoy.getTime() - diasPeriodo * 86_400_000).toISOString().split('T')[0]
+    const fechaInicioAnterior = new Date(hoy.getTime() - diasPeriodo * 2 * 86_400_000).toISOString().split('T')[0]
 
-    // Sin datos en BD → usar demo sin lanzar error
-    if (!fechasRaw || fechasRaw.length === 0) return DATOS_DEMO_KPI
+    const campos = 'gasto_centavos, ingresos_centavos, impresiones, clics, conversiones, roas, ctr, cpc, cpa'
 
-    const [fechaActual, fechaAnterior] = fechasRaw.map((f) => f.fecha)
-
-    // Obtener todas las filas del día actual (todas las campañas del tenant)
-    const { data: filasActuales } = await supabase
-      .from('daily_metrics')
-      .select(
-        'gasto_centavos, ingresos_centavos, impresiones, clics, conversiones, roas, ctr, cpc, cpa'
-      )
-      .eq('fecha', fechaActual)
-
-    // Si solo hay una fecha disponible, comparamos contra cero (100% variación)
-    const { data: filasAnteriores } = fechaAnterior
-      ? await supabase
-          .from('daily_metrics')
-          .select(
-            'gasto_centavos, ingresos_centavos, impresiones, clics, conversiones, roas, ctr, cpc, cpa'
-          )
-          .eq('fecha', fechaAnterior)
-      : { data: [] }
+    const [{ data: filasActuales }, { data: filasAnteriores }] = await Promise.all([
+      supabase
+        .from('daily_metrics')
+        .select(campos)
+        .gte('fecha', fechaInicioActual)
+        .lte('fecha', fechaFinActual),
+      supabase
+        .from('daily_metrics')
+        .select(campos)
+        .gte('fecha', fechaInicioAnterior)
+        .lt('fecha', fechaInicioActual),
+    ])
 
     // Sin filas en el período actual → usar demo
     if (!filasActuales || filasActuales.length === 0) return DATOS_DEMO_KPI
@@ -128,7 +118,9 @@ async function obtenerDatosKPI(): Promise<{
     const actual = agregarMetricas(filasActuales as FilaMetrica[])
     const anterior = agregarMetricas((filasAnteriores ?? []) as FilaMetrica[])
 
-    const PERIODO = 'vs día anterior'
+    const PERIODO = diasPeriodo === 1
+      ? 'vs día anterior'
+      : `vs ${diasPeriodo}d anteriores`
 
     return {
       gasto: {
@@ -169,8 +161,8 @@ async function obtenerDatosKPI(): Promise<{
 }
 
 // Componente que renderiza el grid de 6 KPI cards — Server Component
-export default async function GrupoKPIs() {
-  const datos = await obtenerDatosKPI()
+export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: number }) {
+  const datos = await obtenerDatosKPI(diasPeriodo)
 
   // Definición de cada tarjeta KPI con su configuración visual y datos
   const tarjetas = [
