@@ -1,11 +1,27 @@
 // Server Component — obtiene datos de daily_metrics y los pasa al gráfico cliente
 // Fallback automático a datos demo si Supabase no devuelve filas
 
-import { format } from 'date-fns'
+import { subDays, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import GraficoMultimetrica, { generarDatosDemo30Dias } from './GraficoMultimetrica'
+import GraficoMultimetrica from './GraficoMultimetrica'
+
+// ─── Datos demo ───────────────────────────────────────────────────────────────
+
+function generarDatosDemo30Dias(): DatoPunto[] {
+  const hoy = new Date()
+  return Array.from({ length: 30 }, (_, i) => {
+    const fecha = subDays(hoy, 29 - i)
+    const variabilidad = 0.85 + Math.random() * 0.3
+    return {
+      fecha: format(fecha, 'dd/MM', { locale: es }),
+      gasto: Math.round(1200 * variabilidad * 100) / 100,
+      roas: Math.round(4.2 * variabilidad * 10) / 10,
+      conversiones: Math.round(42 * variabilidad),
+    }
+  })
+}
 
 // Estructura que espera el gráfico cliente
 interface DatoPunto {

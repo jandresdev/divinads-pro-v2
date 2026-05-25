@@ -13,7 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
-import { subDays, format } from 'date-fns'
+import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
@@ -63,26 +63,6 @@ const CONFIGURACION_METRICAS = [
     eje: 'izquierdo' as const,
   },
 ] as const
-
-// ─── Helper: datos demo 30 días ───────────────────────────────────────────────
-
-/**
- * Genera una serie de 30 puntos de datos de ejemplo con variabilidad aleatoria.
- * Se usa cuando Supabase no devuelve datos reales.
- */
-export function generarDatosDemo30Dias(): DatoPunto[] {
-  const hoy = new Date()
-  return Array.from({ length: 30 }, (_, i) => {
-    const fecha = subDays(hoy, 29 - i)
-    const variabilidad = 0.85 + Math.random() * 0.3
-    return {
-      fecha: format(fecha, 'dd/MM', { locale: es }),
-      gasto: Math.round(1200 * variabilidad * 100) / 100,
-      roas: Math.round(4.2 * variabilidad * 10) / 10,
-      conversiones: Math.round(42 * variabilidad),
-    }
-  })
-}
 
 // ─── Tooltip personalizado ────────────────────────────────────────────────────
 
