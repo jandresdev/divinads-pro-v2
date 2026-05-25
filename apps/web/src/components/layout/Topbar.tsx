@@ -113,10 +113,10 @@ export default function Topbar({ usuario }: PropsTopbar) {
             aria-label="Ver notificaciones"
           >
             <Bell className="w-5 h-5" aria-hidden="true" />
-            {/* Badge rojo de alerta — mostrar cuando haya notificaciones sin leer */}
+            {/* Badge rojo decorativo — se conectará al estado real de alertas en Paso 9 */}
             <span
               className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"
-              aria-label="Tienes notificaciones sin leer"
+              aria-hidden="true"
             />
           </button>
 
