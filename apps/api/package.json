@@ -1,0 +1,44 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DivinADS API - Backend de inteligencia y agente autónomo",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@supabase/supabase-js": "^2.44.0",
+    "drizzle-orm": "^0.31.0",
+    "postgres": "^3.4.0",
+    "bull": "^4.14.0",
+    "ioredis": "^5.4.0",
+    "node-cron": "^3.0.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.3.0",
+    "pino": "^9.2.0",
+    "pino-http": "^10.2.0",
+    "zod": "^3.23.0",
+    "dotenv": "^16.4.0",
+    "date-fns": "^3.6.0",
+    "axios": "^1.7.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.14.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/bull": "^4.10.0",
+    "typescript": "^5.4.0",
+    "tsx": "^4.15.0",
+    "vitest": "^1.6.0",
+    "drizzle-kit": "^0.22.0"
+  }
+}

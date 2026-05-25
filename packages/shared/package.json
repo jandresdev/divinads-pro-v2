@@ -1,0 +1,14 @@
+{
+  "name": "@divinads/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tipos y utilidades compartidas de DivinADS",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
