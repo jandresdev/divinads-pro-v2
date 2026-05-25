@@ -286,13 +286,10 @@ describe('detectarAnomalias — caida_conversiones', () => {
     expect(anomalia.severidadScore).toBe(90)
   })
 
-  it('la severidad es 55 (media) para una caída entre 15% y 25%', () => {
-    // 31% >= 25% → severidad 75 (alto), no 55
-    // Para 55 necesitamos entre 15% y 25%: pero el umbral mínimo es 30%
-    // Con umbral 30% el mínimo disparo ya sería ≥ 25% → severidad 75
+  it('la severidad es 75 (alto) para una caída entre 25% y 40%', () => {
+    // 31% >= 25% pero < 40% → severidad 75 (alto)
     const anomalias = detectar({ conversiones_tendencia_7d: -31 })
     const anomalia  = encontrar(anomalias, 'caida_conversiones')!
-    // 31% >= 25% → severidad 75
     expect(anomalia.severidadScore).toBe(75)
   })
 })

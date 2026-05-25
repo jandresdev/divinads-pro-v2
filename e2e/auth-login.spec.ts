@@ -85,23 +85,14 @@ test.describe('Flujo de login de usuario', () => {
     const botonEnviar = page.locator('button[type="submit"]')
     await botonEnviar.click()
 
-    // Esperar respuesta: debe aparecer un mensaje de error o mantenerse en la misma página
-    await page.waitForTimeout(2000)
-
-    // La página NO debe redirigir al dashboard con credenciales inválidas
-    const urlActual = page.url()
-    expect(urlActual).not.toMatch(/dashboard/)
+    // Esperar a que la URL se estabilice (sin dashboard) — más fiable que un timeout fijo
+    await expect(page).not.toHaveURL(/dashboard/, { timeout: 5000 })
   })
 
   test('navegar directamente a /dashboard sin login redirige a login', async ({ page }) => {
     await page.goto('/dashboard')
 
-    // Esperar redirección
-    await page.waitForTimeout(1500)
-
-    // Debe estar en la página de autenticación, no en el dashboard
-    const urlActual = page.url()
-    const estaEnAuth = urlActual.includes('iniciar-sesion') || urlActual.includes('login') || urlActual.includes('auth')
-    expect(estaEnAuth).toBe(true)
+    // Esperar la redirección a auth — más fiable que timeout fijo
+    await expect(page).toHaveURL(/iniciar-sesion|login|auth/, { timeout: 5000 })
   })
 })
