@@ -14,6 +14,7 @@ import rutasMetricas from './routes/metricas'
 import rutasAnomalias from './routes/anomalias'
 import rutasAgente from './routes/agente'
 import rutasChat from './routes/chat'
+import rutasMetaConfig from './routes/meta-config'
 import logger from './utils/logger'
 
 const app = express()
@@ -66,13 +67,14 @@ app.use('/api/metricas', rutasMetricas)
 app.use('/api/anomalias', rutasAnomalias)
 app.use('/api/agente', rutasAgente)
 app.use('/api/chat', rutasChat)
+app.use('/api/meta', rutasMetaConfig)
 
 // Ruta raíz
 app.get('/', (req, res) => {
   res.json({
     nombre: 'DivinADS API',
     version: '1.0.0',
-    endpoints: ['/api/campanas', '/api/metricas', '/api/anomalias', '/api/agente', '/api/chat'],
+    endpoints: ['/api/campanas', '/api/metricas', '/api/anomalias', '/api/agente', '/api/chat', '/api/meta'],
     documentacion: '/health',
   })
 })
