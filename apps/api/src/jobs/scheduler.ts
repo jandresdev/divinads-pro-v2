@@ -2,6 +2,7 @@ import cron from 'node-cron'
 import logger from '../utils/logger'
 import { jobSincronizarTodosLosTenants } from './sincronizar-meta'
 import { jobCalcularFeatures } from './calcular-features'
+import { jobDetectarAnomalias } from './detectar-anomalias'
 
 // ---------------------------------------------------------------------------
 // Tipos y definición de jobs
@@ -30,7 +31,13 @@ const JOBS: CronJob[] = [
     expresion: '5,20,35,50 * * * *', // A los :05, :20, :35 y :50 de cada hora
     handler:   jobCalcularFeatures,
   },
-  // TODO Paso 15: detectar-anomalias — agregar job de detección de anomalías aquí
+  {
+    // Motor de detección de anomalías: aplica reglas sobre los feature snapshots
+    // Corre 5 minutos después del pipeline de features para tener datos actualizados
+    nombre:    'detectar-anomalias',
+    expresion: '10,25,40,55 * * * *', // A los :10, :25, :40 y :55 de cada hora
+    handler:   jobDetectarAnomalias,
+  },
 ]
 
 // ---------------------------------------------------------------------------
