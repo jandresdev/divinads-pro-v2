@@ -1,18 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Rutas que requieren autenticación
-const RUTAS_PROTEGIDAS = [
-  '/dashboard',
-  '/campañas',
-  '/campanias',
-  '/analiticas',
-  '/chat',
-  '/configuracion',
-]
-// Rutas solo para usuarios no autenticados
-const RUTAS_AUTH = ['/auth/iniciar-sesion', '/auth/registrarse', '/auth/olvide-contraseña']
-
 export async function middleware(solicitud: NextRequest) {
   let respuesta = NextResponse.next({
     request: {
@@ -20,6 +8,8 @@ export async function middleware(solicitud: NextRequest) {
     },
   })
 
+  // Solo refresca las cookies de sesión de Supabase si están próximas a expirar.
+  // La protección de rutas la manejan los layouts de servidor con getUser().
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -43,32 +33,13 @@ export async function middleware(solicitud: NextRequest) {
     }
   )
 
-  // Leer sesión desde la cookie sin hacer llamada de red (más fiable en edge)
-  const { data: { session } } = await supabase.auth.getSession()
-
-  const rutaActual = solicitud.nextUrl.pathname
-
-  // Redirigir a login si intenta acceder a ruta protegida sin autenticación
-  if (!session && RUTAS_PROTEGIDAS.some(ruta => rutaActual.startsWith(ruta))) {
-    const urlRedireccion = solicitud.nextUrl.clone()
-    urlRedireccion.pathname = '/auth/iniciar-sesion'
-    urlRedireccion.searchParams.set('redirigir_a', rutaActual)
-    return NextResponse.redirect(urlRedireccion)
-  }
-
-  // Redirigir al dashboard si ya está autenticado y va a páginas de auth
-  if (session && RUTAS_AUTH.some(ruta => rutaActual.startsWith(ruta))) {
-    const urlRedireccion = solicitud.nextUrl.clone()
-    urlRedireccion.pathname = '/dashboard'
-    return NextResponse.redirect(urlRedireccion)
-  }
+  await supabase.auth.getUser()
 
   return respuesta
 }
 
 export const config = {
   matcher: [
-    // Aplicar a todas las rutas excepto archivos estáticos y API
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

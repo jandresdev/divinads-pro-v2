@@ -18,7 +18,7 @@ export default async function LayoutApp({
   } = await supabase.auth.getUser()
 
   if (error || !user) {
-    redirect('/auth/iniciar-sesion')
+    redirect('/auth/iniciar-sesion?redirigir_a=/dashboard')
   }
 
   // Datos del usuario para los componentes de layout
