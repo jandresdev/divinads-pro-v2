@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     // Personalizar el mensaje si el token de Meta es inválido
     if (error instanceof ErrorMetaAPI && error.esTokenExpirado) {
-      console.warn(`[api/meta-config] El token de Meta proporcionado es inválido o expirado: tenant=${(await autenticarRequest(req))?.tenantId}`)
+      console.warn(`[api/meta-config] El token de Meta proporcionado es inválido o expirado: tenant=${usuario.tenantId}`)
       return NextResponse.json(
         { exito: false, error: 'El access token de Meta es inválido o ha expirado. Por favor genera uno nuevo.' },
         { status: 401 }

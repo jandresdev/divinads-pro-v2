@@ -8,12 +8,15 @@ import { supabaseAdmin } from '@/lib/api/autenticar'
 /**
  * Obtiene las métricas diarias de una campaña desde la tabla daily_metrics.
  * Retorna los datos como JSON string para que el agente pueda interpretarlos.
+ * Filtra por tenant_id para evitar acceso entre tenants (IDOR).
  *
  * @param campaignId - UUID de la campaña en Supabase
+ * @param tenantId - UUID del tenant autenticado (para aislamiento multi-tenant)
  * @param dias - Número de días hacia atrás a consultar (máximo 30)
  */
 export async function obtenerMetricasCampaña(
   campaignId: string,
+  tenantId: string,
   dias: number = 7
 ): Promise<string> {
   // Calcular fecha límite de la consulta
@@ -21,7 +24,7 @@ export async function obtenerMetricasCampaña(
   fechaLimite.setDate(fechaLimite.getDate() - dias)
   const fechaLimiteStr = fechaLimite.toISOString().split('T')[0]
 
-  console.debug(`[herramientas-agente] Consultando métricas de campaña: campaignId=${campaignId} dias=${dias} fechaLimite=${fechaLimiteStr}`)
+  console.debug(`[herramientas-agente] Consultando métricas de campaña: campaignId=${campaignId} tenantId=${tenantId} dias=${dias} fechaLimite=${fechaLimiteStr}`)
 
   const { data, error } = await supabaseAdmin
     .from('daily_metrics')
@@ -29,6 +32,7 @@ export async function obtenerMetricasCampaña(
       'fecha, roas, gasto_centavos, ctr, cpc_centavos, conversiones, cpa_centavos, frecuencia'
     )
     .eq('campaign_id', campaignId)
+    .eq('tenant_id', tenantId)
     .gte('fecha', fechaLimiteStr)
     .order('fecha', { ascending: true })
 
@@ -59,20 +63,24 @@ export async function obtenerMetricasCampaña(
 /**
  * Obtiene el historial de anomalías previas de una campaña.
  * Permite al agente detectar si una anomalía es recurrente o nueva.
+ * Filtra por tenant_id para evitar acceso entre tenants (IDOR).
  *
  * @param campaignId - UUID de la campaña
+ * @param tenantId - UUID del tenant autenticado (para aislamiento multi-tenant)
  * @param limit - Número máximo de anomalías a recuperar
  */
 export async function obtenerHistorialAnomalias(
   campaignId: string,
+  tenantId: string,
   limit: number = 10
 ): Promise<string> {
-  console.debug(`[herramientas-agente] Consultando historial de anomalías: campaignId=${campaignId} limit=${limit}`)
+  console.debug(`[herramientas-agente] Consultando historial de anomalías: campaignId=${campaignId} tenantId=${tenantId} limit=${limit}`)
 
   const { data, error } = await supabaseAdmin
     .from('anomalies')
     .select('tipo, severidad_score, titulo, descripcion, created_at, revisada')
     .eq('campaign_id', campaignId)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -91,16 +99,19 @@ export async function obtenerHistorialAnomalias(
 /**
  * Obtiene la predicción de ROAS a 7 días generada por el modelo ML.
  * El agente usa esta información para estimar el impacto futuro de sus acciones.
+ * Filtra por tenant_id para evitar acceso entre tenants (IDOR).
  *
  * @param campaignId - UUID de la campaña
+ * @param tenantId - UUID del tenant autenticado (para aislamiento multi-tenant)
  */
-export async function obtenerPrediccionROAS(campaignId: string): Promise<string> {
-  console.debug(`[herramientas-agente] Consultando predicción de ROAS: campaignId=${campaignId}`)
+export async function obtenerPrediccionROAS(campaignId: string, tenantId: string): Promise<string> {
+  console.debug(`[herramientas-agente] Consultando predicción de ROAS: campaignId=${campaignId} tenantId=${tenantId}`)
 
   const { data, error } = await supabaseAdmin
     .from('predictions')
     .select('roas_predicho, confianza, tendencia, explicacion, fecha_prediccion')
     .eq('campaign_id', campaignId)
+    .eq('tenant_id', tenantId)
     .order('fecha_prediccion', { ascending: false })
     .limit(1)
     .single()
@@ -161,32 +172,37 @@ export async function obtenerContextoTenant(tenantId: string): Promise<string> {
  *
  * @param nombre - Nombre de la herramienta según la definición en HERRAMIENTAS_AGENTE
  * @param input - Parámetros de entrada validados por el SDK de Anthropic
+ * @param tenantId - UUID del tenant autenticado — requerido para aislamiento multi-tenant
  * @returns Resultado de la herramienta como JSON string
  */
 export async function ejecutarHerramienta(
   nombre: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  tenantId: string
 ): Promise<string> {
-  console.debug(`[herramientas-agente] Despachando herramienta: ${nombre}`)
+  console.debug(`[herramientas-agente] Despachando herramienta: ${nombre} tenantId=${tenantId}`)
 
   switch (nombre) {
     case 'obtener_metricas_campaña':
       return obtenerMetricasCampaña(
         String(input.campaign_id),
+        tenantId,
         typeof input.dias === 'number' ? input.dias : 7
       )
 
     case 'obtener_historial_anomalias':
       return obtenerHistorialAnomalias(
         String(input.campaign_id),
+        tenantId,
         typeof input.limit === 'number' ? input.limit : 10
       )
 
     case 'obtener_prediccion_roas':
-      return obtenerPrediccionROAS(String(input.campaign_id))
+      return obtenerPrediccionROAS(String(input.campaign_id), tenantId)
 
     case 'obtener_contexto_tenant':
-      return obtenerContextoTenant(String(input.tenant_id))
+      // El tenant_id del contexto siempre es el del usuario autenticado — no se confía en el input
+      return obtenerContextoTenant(tenantId)
 
     default:
       // El agente intentó usar una herramienta que no existe — informar sin lanzar error

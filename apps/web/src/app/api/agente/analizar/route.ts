@@ -32,11 +32,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ exito: false, error: 'Anomalía no encontrada' }, { status: 404 })
     }
 
+    // Verificar que campaignId también pertenezca al tenant autenticado (previene IDOR)
+    const { data: campana } = await supabaseAdmin
+      .from('campaigns')
+      .select('id')
+      .eq('id', campaignId)
+      .eq('tenant_id', usuario.tenantId)
+      .single()
+
+    if (!campana) {
+      return NextResponse.json({ exito: false, error: 'Campaña no encontrada' }, { status: 404 })
+    }
+
     // Construir el mensaje de análisis con el contexto de la anomalía
     const mensaje = `Analiza la anomalía: ${anomalia.titulo} (${anomalia.tipo}) en la campaña ${campaignId}. Severidad: ${anomalia.severidad_score}/100.`
 
+    // Crear despachador de herramientas vinculado al tenant autenticado
+    const despachadorHerramientas = (nombre: string, input: Record<string, unknown>) =>
+      ejecutarHerramienta(nombre, input, usuario.tenantId)
+
     // Invocar al agente con capacidad de usar herramientas para recopilar contexto
-    const respuesta = await ejecutarAgente(mensaje, ejecutarHerramienta)
+    const respuesta = await ejecutarAgente(mensaje, despachadorHerramientas)
 
     return NextResponse.json({ exito: true, datos: respuesta })
   } catch (error) {
