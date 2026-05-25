@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 // ---------------------------------------------------------------------------
 
 // Resultado de sincronización de un tenant individual
-interface ResultadoSincronizacion {
+export interface ResultadoSincronizacion {
   tenantId: string
   exitoso: boolean
   campañasSincronizadas: number
@@ -17,7 +17,7 @@ interface ResultadoSincronizacion {
 }
 
 // Datos de cuenta Meta que vienen de la tabla meta_accounts
-interface CuentaMeta {
+export interface CuentaMeta {
   tenant_id: string
   access_token: string
   ad_account_id: string
