@@ -15,6 +15,8 @@ import rutasAnomalias from './routes/anomalias'
 import rutasAgente from './routes/agente'
 import rutasChat from './routes/chat'
 import rutasMetaConfig from './routes/meta-config'
+import rutasSincronizacion from './routes/sincronizacion'
+import { iniciarScheduler, detenerScheduler } from './jobs/scheduler'
 import logger from './utils/logger'
 
 const app = express()
@@ -68,13 +70,22 @@ app.use('/api/anomalias', rutasAnomalias)
 app.use('/api/agente', rutasAgente)
 app.use('/api/chat', rutasChat)
 app.use('/api/meta', rutasMetaConfig)
+app.use('/api/sincronizacion', rutasSincronizacion)
 
 // Ruta raíz
 app.get('/', (req, res) => {
   res.json({
     nombre: 'DivinADS API',
     version: '1.0.0',
-    endpoints: ['/api/campanas', '/api/metricas', '/api/anomalias', '/api/agente', '/api/chat', '/api/meta'],
+    endpoints: [
+      '/api/campanas',
+      '/api/metricas',
+      '/api/anomalias',
+      '/api/agente',
+      '/api/chat',
+      '/api/meta',
+      '/api/sincronizacion',
+    ],
     documentacion: '/health',
   })
 })
@@ -95,6 +106,22 @@ app.use(manejadorErrores)
 app.listen(PUERTO, () => {
   logger.info(`Servidor DivinADS API iniciado en puerto ${PUERTO}`)
   logger.info(`Ambiente: ${process.env.NODE_ENV || 'desarrollo'}`)
+
+  // Iniciar jobs programados (cron de sincronización Meta, etc.)
+  iniciarScheduler()
+})
+
+// Graceful shutdown — detener jobs antes de cerrar el proceso
+process.on('SIGTERM', () => {
+  logger.info('Señal SIGTERM recibida — cerrando servidor ordenadamente')
+  detenerScheduler()
+  process.exit(0)
+})
+
+process.on('SIGINT', () => {
+  logger.info('Señal SIGINT recibida — cerrando servidor ordenadamente')
+  detenerScheduler()
+  process.exit(0)
 })
 
 export default app
