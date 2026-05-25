@@ -8,3 +8,7 @@ build/
 *.log
 .turbo/
 coverage/
+
+# Herramientas locales (no forman parte del proyecto)
+.claude/
+the-architect/
