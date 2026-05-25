@@ -2,6 +2,7 @@
 import GrupoKPIs from '@/components/dashboard/GrupoKPIs'
 import ContenedorGraficoMultimetrica from '@/components/dashboard/ContenedorGraficoMultimetrica'
 import ContenedorPresupuesto from '@/components/dashboard/ContenedorPresupuesto'
+import ContenedorTablaCampañas from '@/components/dashboard/ContenedorTablaCampañas'
 
 export default async function PaginaDashboard() {
   return (
@@ -42,14 +43,9 @@ export default async function PaginaDashboard() {
 
       {/* Fila de tabla + alertas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tabla de top campañas — skeleton */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
-          <div className="h-5 w-36 bg-muted/20 rounded skeleton mb-4" />
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-10 bg-muted/10 rounded skeleton" />
-            ))}
-          </div>
+        {/* Tabla de top campañas con ordenamiento por columna */}
+        <div className="lg:col-span-2">
+          <ContenedorTablaCampañas />
         </div>
 
         {/* Panel de alertas y anomalías — skeleton */}
