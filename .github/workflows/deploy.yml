@@ -1,0 +1,47 @@
+name: Deploy - Preparación para despliegue
+
+on:
+  workflow_run:
+    workflows:
+      - "CI - Integración Continua"
+    branches:
+      - main
+    types:
+      - completed
+
+jobs:
+  deploy-preview:
+    name: Notificación de despliegue listo
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Confirmar CI exitoso
+        run: |
+          echo "=========================================="
+          echo "CI completado exitosamente en rama: main"
+          echo "Commit: ${{ github.event.workflow_run.head_sha }}"
+          echo "=========================================="
+
+      - name: Instrucciones de despliegue manual
+        run: |
+          echo ""
+          echo "El código está listo para despliegue manual."
+          echo ""
+          echo "FRONTEND (Vercel):"
+          echo "  1. Ir a vercel.com/dashboard"
+          echo "  2. Seleccionar el proyecto divinads-web"
+          echo "  3. El despliegue automático de Vercel debería dispararse"
+          echo "     automáticamente al detectar el push a main."
+          echo "  4. Si no: ir a Deployments > Deploy manually"
+          echo ""
+          echo "BACKEND (Railway):"
+          echo "  1. Ir a railway.app/dashboard"
+          echo "  2. Seleccionar el servicio divinads-api"
+          echo "  3. El despliegue automático de Railway debería dispararse"
+          echo "     automáticamente al detectar el push a main."
+          echo "  4. Si no: ir al servicio > Deploy > Deploy Latest"
+          echo ""
+          echo "NOTA: Este job es un placeholder. El despliegue real"
+          echo "se gestiona directamente desde Vercel y Railway."
+          echo "=========================================="
