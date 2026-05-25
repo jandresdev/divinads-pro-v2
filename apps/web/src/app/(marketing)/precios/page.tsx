@@ -114,7 +114,7 @@ export default function PaginaPrecios() {
 
               {/* Botón de llamada a la acción */}
               <a
-                href="/auth/registrarse"
+                href={plan.precio === 299 ? 'mailto:ventas@divinads.com' : '/auth/registrarse'}
                 className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${
                   plan.destacado
                     ? 'bg-primary text-white hover:bg-primary/90'

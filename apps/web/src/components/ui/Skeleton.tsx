@@ -10,13 +10,11 @@ interface PropsSkeleton {
 export function Skeleton({ className }: PropsSkeleton) {
   return (
     <div
-      role="status"
-      aria-label="Cargando..."
+      aria-hidden="true"
       className={cn(
         'animate-pulse rounded-md bg-muted/20',
         className
       )}
-      aria-hidden="true"
     />
   )
 }

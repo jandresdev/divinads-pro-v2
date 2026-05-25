@@ -104,30 +104,33 @@ export default function PaginaConfiguracion() {
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-muted-foreground block mb-1.5">
+                  <label htmlFor="perfil-nombre" className="text-sm text-muted-foreground block mb-1.5">
                     Nombre
                   </label>
                   <input
+                    id="perfil-nombre"
                     type="text"
                     placeholder="Tu nombre"
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground block mb-1.5">
+                  <label htmlFor="perfil-empresa" className="text-sm text-muted-foreground block mb-1.5">
                     Empresa
                   </label>
                   <input
+                    id="perfil-empresa"
                     type="text"
                     placeholder="Nombre de tu empresa"
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-sm text-muted-foreground block mb-1.5">
+                  <label htmlFor="perfil-email" className="text-sm text-muted-foreground block mb-1.5">
                     Email
                   </label>
                   <input
+                    id="perfil-email"
                     type="email"
                     placeholder="tu@email.com"
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 opacity-60 cursor-not-allowed"
