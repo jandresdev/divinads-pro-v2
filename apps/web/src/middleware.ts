@@ -43,13 +43,13 @@ export async function middleware(solicitud: NextRequest) {
     }
   )
 
-  // Refrescar sesión si ha expirado
-  const { data: { user } } = await supabase.auth.getUser()
+  // Leer sesión desde la cookie sin hacer llamada de red (más fiable en edge)
+  const { data: { session } } = await supabase.auth.getSession()
 
   const rutaActual = solicitud.nextUrl.pathname
 
   // Redirigir a login si intenta acceder a ruta protegida sin autenticación
-  if (!user && RUTAS_PROTEGIDAS.some(ruta => rutaActual.startsWith(ruta))) {
+  if (!session && RUTAS_PROTEGIDAS.some(ruta => rutaActual.startsWith(ruta))) {
     const urlRedireccion = solicitud.nextUrl.clone()
     urlRedireccion.pathname = '/auth/iniciar-sesion'
     urlRedireccion.searchParams.set('redirigir_a', rutaActual)
@@ -57,7 +57,7 @@ export async function middleware(solicitud: NextRequest) {
   }
 
   // Redirigir al dashboard si ya está autenticado y va a páginas de auth
-  if (user && RUTAS_AUTH.some(ruta => rutaActual.startsWith(ruta))) {
+  if (session && RUTAS_AUTH.some(ruta => rutaActual.startsWith(ruta))) {
     const urlRedireccion = solicitud.nextUrl.clone()
     urlRedireccion.pathname = '/dashboard'
     return NextResponse.redirect(urlRedireccion)
