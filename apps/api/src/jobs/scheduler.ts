@@ -4,6 +4,8 @@ import { jobSincronizarTodosLosTenants } from './sincronizar-meta'
 import { jobCalcularFeatures } from './calcular-features'
 import { jobDetectarAnomalias } from './detectar-anomalias'
 import { jobEntrenarModelos } from './entrenar-modelos'
+import { jobAgenteMonitor } from './agente-monitor'
+import { jobValidarResultados } from './validar-resultados'
 
 // ---------------------------------------------------------------------------
 // Tipos y definición de jobs
@@ -45,6 +47,20 @@ const JOBS: CronJob[] = [
     nombre:    'generar-predicciones',
     expresion: '0 3 */2 * *', // A las 3am cada 2 días
     handler:   jobEntrenarModelos,
+  },
+  {
+    // Agente monitor DivinADS: detecta anomalías críticas y dispara el análisis de Claude
+    // Se ejecuta cada 15 minutos para reaccionar rápido ante caídas de ROAS o CTR
+    nombre:    'agente-monitor',
+    expresion: '*/15 * * * *', // Cada 15 minutos
+    handler:   jobAgenteMonitor,
+  },
+  {
+    // Ciclo de validación de 48h: evalúa si las acciones ejecutadas mejoraron las métricas
+    // Corre cada 6 horas — solo procesa acciones que superaron la ventana de 48h
+    nombre:    'validar-resultados',
+    expresion: '0 */6 * * *', // Cada 6 horas (a las :00 de cada 6h)
+    handler:   jobValidarResultados,
   },
 ]
 
