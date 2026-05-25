@@ -4,6 +4,7 @@ import ContenedorGraficoMultimetrica from '@/components/dashboard/ContenedorGraf
 import ContenedorPresupuesto from '@/components/dashboard/ContenedorPresupuesto'
 import ContenedorTablaCampañas from '@/components/dashboard/ContenedorTablaCampañas'
 import ContenedorPanelAlertas from '@/components/dashboard/ContenedorPanelAlertas'
+import ContenedorInsightsIA from '@/components/dashboard/ContenedorInsightsIA'
 
 export default async function PaginaDashboard() {
   return (
@@ -52,6 +53,9 @@ export default async function PaginaDashboard() {
         {/* Panel de alertas y anomalías — alertas reales desde Supabase con fallback a demo */}
         <ContenedorPanelAlertas />
       </div>
+
+      {/* Sidebar flotante de insights IA — posición fixed, no ocupa espacio en el grid */}
+      <ContenedorInsightsIA />
     </div>
   )
 }
