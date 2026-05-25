@@ -1,5 +1,6 @@
 // Página principal del dashboard — Server Component
 import GrupoKPIs from '@/components/dashboard/GrupoKPIs'
+import ContenedorGraficoMultimetrica from '@/components/dashboard/ContenedorGraficoMultimetrica'
 
 export default async function PaginaDashboard() {
   return (
@@ -29,10 +30,9 @@ export default async function PaginaDashboard() {
 
       {/* Fila de gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfico multi-métrica (Gasto / ROAS / Conversiones) — skeleton */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-xl p-6">
-          <div className="h-5 w-48 bg-muted/20 rounded skeleton mb-4" />
-          <div className="h-64 bg-muted/10 rounded skeleton" />
+        {/* Gráfico multi-métrica (Gasto / ROAS / Conversiones) */}
+        <div className="lg:col-span-2">
+          <ContenedorGraficoMultimetrica />
         </div>
 
         {/* Gráfico dona de asignación de presupuesto — skeleton */}
