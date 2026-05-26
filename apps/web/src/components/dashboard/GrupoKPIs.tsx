@@ -9,8 +9,7 @@ import {
 } from 'lucide-react'
 
 import { crearClienteServidor } from '@/lib/supabase/servidor'
-import { formatearMoneda, formatearNumero, formatearPorcentaje } from '@/lib/utils'
-import { DATOS_DEMO_KPI } from '@/lib/constantes/demo'
+import { formatearMoneda, formatearNumero } from '@/lib/utils'
 import TarjetaKPI from './TarjetaKPI'
 import type { Database } from '@/lib/supabase/tipos'
 
@@ -76,7 +75,6 @@ function agregarMetricas(filas: FilaMetrica[]): MetricasAgregadas {
   return { gasto: gastoTotal, roas, ctr, cpc, conversiones: conversionesTotal, cpa }
 }
 
-// Obtiene las métricas KPI del Supabase o retorna datos demo si no hay datos
 async function obtenerDatosKPI(diasPeriodo: number): Promise<{
   gasto: MetricaKPI
   roas: MetricaKPI
@@ -84,13 +82,12 @@ async function obtenerDatosKPI(diasPeriodo: number): Promise<{
   cpc: MetricaKPI
   conversiones: MetricaKPI
   cpa: MetricaKPI
-}> {
+} | null> {
   try {
     const supabase = await crearClienteServidor()
 
-    // Verificar autenticación — si no hay sesión retornamos demo
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return DATOS_DEMO_KPI
+    if (!user) return null
 
     const hoy = new Date()
     const fechaFinActual   = hoy.toISOString().split('T')[0]
@@ -112,8 +109,7 @@ async function obtenerDatosKPI(diasPeriodo: number): Promise<{
         .lt('fecha', fechaInicioActual),
     ])
 
-    // Sin filas en el período actual → usar demo
-    if (!filasActuales || filasActuales.length === 0) return DATOS_DEMO_KPI
+    if (!filasActuales || filasActuales.length === 0) return null
 
     const actual = agregarMetricas(filasActuales as FilaMetrica[])
     const anterior = agregarMetricas((filasAnteriores ?? []) as FilaMetrica[])
@@ -155,22 +151,28 @@ async function obtenerDatosKPI(diasPeriodo: number): Promise<{
       },
     }
   } catch {
-    // Cualquier error de red o Supabase → caer silenciosamente a demo
-    return DATOS_DEMO_KPI
+    return null
   }
 }
+
+const KPI_VACIO: MetricaKPI = { valor: 0, variacion: 0, periodo: 'Sin datos aún' }
 
 // Componente que renderiza el grid de 6 KPI cards — Server Component
 export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: number }) {
   const datos = await obtenerDatosKPI(diasPeriodo)
 
+  const d = datos ?? {
+    gasto: KPI_VACIO, roas: KPI_VACIO, ctr: KPI_VACIO,
+    cpc: KPI_VACIO, conversiones: KPI_VACIO, cpa: KPI_VACIO,
+  }
+
   // Definición de cada tarjeta KPI con su configuración visual y datos
   const tarjetas = [
     {
       titulo: 'Gasto',
-      valor: formatearMoneda(datos.gasto.valor),
-      variacion: datos.gasto.variacion,
-      periodo: datos.gasto.periodo,
+      valor: formatearMoneda(d.gasto.valor),
+      variacion: d.gasto.variacion,
+      periodo: d.gasto.periodo,
       icono: (
         <DollarSign
           size={16}
@@ -181,9 +183,9 @@ export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: num
     },
     {
       titulo: 'ROAS',
-      valor: `${datos.roas.valor.toFixed(1).replace('.', ',')}x`,
-      variacion: datos.roas.variacion,
-      periodo: datos.roas.periodo,
+      valor: `${d.roas.valor.toFixed(1).replace('.', ',')}x`,
+      variacion: d.roas.variacion,
+      periodo: d.roas.periodo,
       icono: (
         <TrendingUp
           size={16}
@@ -194,9 +196,9 @@ export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: num
     },
     {
       titulo: 'CTR',
-      valor: `${datos.ctr.valor.toFixed(1).replace('.', ',')}%`,
-      variacion: datos.ctr.variacion,
-      periodo: datos.ctr.periodo,
+      valor: `${d.ctr.valor.toFixed(1).replace('.', ',')}%`,
+      variacion: d.ctr.variacion,
+      periodo: d.ctr.periodo,
       icono: (
         <MousePointer
           size={16}
@@ -207,9 +209,9 @@ export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: num
     },
     {
       titulo: 'CPC',
-      valor: formatearMoneda(datos.cpc.valor),
-      variacion: datos.cpc.variacion,
-      periodo: datos.cpc.periodo,
+      valor: formatearMoneda(d.cpc.valor),
+      variacion: d.cpc.variacion,
+      periodo: d.cpc.periodo,
       icono: (
         <MousePointerClick
           size={16}
@@ -220,9 +222,9 @@ export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: num
     },
     {
       titulo: 'Conversiones',
-      valor: formatearNumero(datos.conversiones.valor),
-      variacion: datos.conversiones.variacion,
-      periodo: datos.conversiones.periodo,
+      valor: formatearNumero(d.conversiones.valor),
+      variacion: d.conversiones.variacion,
+      periodo: d.conversiones.periodo,
       icono: (
         <ShoppingCart
           size={16}
@@ -233,9 +235,9 @@ export default async function GrupoKPIs({ diasPeriodo = 1 }: { diasPeriodo?: num
     },
     {
       titulo: 'CPA',
-      valor: formatearMoneda(datos.cpa.valor),
-      variacion: datos.cpa.variacion,
-      periodo: datos.cpa.periodo,
+      valor: formatearMoneda(d.cpa.valor),
+      variacion: d.cpa.variacion,
+      periodo: d.cpa.periodo,
       icono: (
         <Target
           size={16}

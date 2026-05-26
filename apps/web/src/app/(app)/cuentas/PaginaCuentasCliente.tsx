@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  CheckCircle2, AlertCircle, Plus, RefreshCw,
+  CheckCircle2, Plus, RefreshCw,
   ExternalLink, BarChart3, Megaphone, Wallet,
 } from 'lucide-react'
 import { formatearMoneda } from '@/lib/utils'
@@ -11,10 +11,10 @@ import SinConexionMeta from '@/components/SinConexionMeta'
 
 interface CuentaMeta {
   id: string
-  ad_account_id: string
+  meta_account_id: string
+  nombre_cuenta: string | null
   configurada: boolean
   configurada_desde: string | null
-  token_expiry: string | null
 }
 
 interface EstadisticasCuenta {
@@ -43,10 +43,10 @@ export default function PaginaCuentasCliente() {
         if (jsonCuenta.exito && jsonCuenta.datos?.configurada) {
           setCuenta({
             id: 'real',
-            ad_account_id: jsonCuenta.datos.adAccountId ?? 'act_desconocido',
+            meta_account_id: jsonCuenta.datos.adAccountId ?? 'act_desconocido',
+            nombre_cuenta: jsonCuenta.datos.nombreCuenta ?? null,
             configurada: true,
             configurada_desde: jsonCuenta.datos.configuradaDesde,
-            token_expiry: jsonCuenta.datos.tokenExpiry,
           })
 
           if (jsonMetricas.exito && jsonMetricas.datos) {
@@ -113,7 +113,7 @@ export default function PaginaCuentasCliente() {
                       <CheckCircle2 className="w-3 h-3" />Conectada
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1 font-mono">{cuenta.ad_account_id}</p>
+                  <p className="text-sm text-muted-foreground mt-1 font-mono">{cuenta.nombre_cuenta ?? cuenta.meta_account_id}</p>
                   {cuenta.configurada_desde && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Conectada el {new Date(cuenta.configurada_desde).toLocaleDateString('es-ES', {
@@ -141,15 +141,7 @@ export default function PaginaCuentasCliente() {
               </div>
             </div>
 
-            {cuenta.token_expiry && (
-              <div className="mt-4 p-3 bg-warning/5 border border-warning/20 rounded-lg flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-warning shrink-0" />
-                <p className="text-xs text-foreground">
-                  El token de acceso expira el {new Date(cuenta.token_expiry).toLocaleDateString('es-ES')}.
-                  <Link href="/configuracion/meta" className="ml-1 text-primary hover:underline">Renovar ahora</Link>
-                </p>
-              </div>
-            )}
+            {/* Aviso de renovación cuando el token de OAuth esté próximo a expirar (60 días) */}
           </div>
 
           {stats && (

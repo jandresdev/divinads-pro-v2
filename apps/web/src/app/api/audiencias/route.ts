@@ -11,9 +11,10 @@ export async function GET(req: NextRequest) {
     // Obtener credenciales Meta del tenant
     const { data: cuenta, error: errCuenta } = await usuario.supabase
       .from('meta_accounts')
-      .select('access_token, ad_account_id')
+      .select('access_token, meta_account_id')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .limit(1)
       .single()
 
     if (errCuenta || !cuenta) {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    const cliente = new ClienteMetaAds(cuenta.access_token, cuenta.ad_account_id)
+    const cliente = new ClienteMetaAds(cuenta.access_token, cuenta.meta_account_id)
     const audiencias = await cliente.obtenerAudiencias()
 
     return NextResponse.json({ exito: true, datos: audiencias })

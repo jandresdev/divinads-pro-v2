@@ -11,9 +11,10 @@ export async function POST(req: NextRequest) {
     // Obtener la cuenta Meta activa del tenant
     const { data: cuenta, error: errorCuenta } = await usuario.supabase
       .from('meta_accounts')
-      .select('access_token, ad_account_id')
+      .select('access_token, meta_account_id')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .limit(1)
       .single()
 
     if (errorCuenta || !cuenta) {
@@ -25,8 +26,8 @@ export async function POST(req: NextRequest) {
 
     // Ejecutar sincronización — siempre devuelve un resultado (no lanza)
     const resultado = await ejecutarSincronizacion(usuario.tenantId, {
-      access_token:  cuenta.access_token,
-      ad_account_id: cuenta.ad_account_id,
+      access_token:    cuenta.access_token,
+      meta_account_id: cuenta.meta_account_id,
     })
 
     if (!resultado.exitoso) {

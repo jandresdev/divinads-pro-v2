@@ -4,18 +4,19 @@ import { ClienteMetaAds } from './meta-ads-cliente'
 // ---------------------------------------------------------------------------
 // Servicio para gestionar las cuentas Meta almacenadas en Supabase
 // Tabla: meta_accounts — columnas relevantes:
-//   tenant_id, access_token, ad_account_id, token_expiry, activa
+//   tenant_id, access_token, meta_account_id, activa
 // ---------------------------------------------------------------------------
 
 // Obtiene un cliente Meta listo para usar dado un tenant_id
-// Retorna null si no hay cuenta configurada o el token expiró
+// Retorna null si no hay cuenta configurada o activa
 export async function obtenerClienteMeta(tenantId: string): Promise<ClienteMetaAds | null> {
   try {
     const { data: cuenta, error } = await supabaseAdmin
       .from('meta_accounts')
-      .select('access_token, ad_account_id, token_expiry')
+      .select('access_token, meta_account_id')
       .eq('tenant_id', tenantId)
       .eq('activa', true)
+      .limit(1)
       .single()
 
     if (error || !cuenta) {
@@ -23,13 +24,7 @@ export async function obtenerClienteMeta(tenantId: string): Promise<ClienteMetaA
       return null
     }
 
-    // Verificar que el token no haya expirado según la fecha almacenada
-    if (cuenta.token_expiry && new Date(cuenta.token_expiry) < new Date()) {
-      console.warn(`[meta-accounts-service] El token de Meta ha expirado para tenant=${tenantId}`)
-      return null
-    }
-
-    return new ClienteMetaAds(cuenta.access_token, cuenta.ad_account_id)
+    return new ClienteMetaAds(cuenta.access_token, cuenta.meta_account_id)
   } catch (error) {
     console.error(`[meta-accounts-service] Error inesperado al obtener cliente Meta de Supabase: tenant=${tenantId}`, error)
     return null

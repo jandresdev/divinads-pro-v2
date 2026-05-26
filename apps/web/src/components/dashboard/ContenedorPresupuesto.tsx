@@ -19,19 +19,6 @@ const COLORES_TIPO: Record<string, string> = {
 // Color por defecto para tipos de campaña no catalogados
 const COLOR_FALLBACK = '#94a3b8'
 
-// ─── Datos demo ───────────────────────────────────────────────────────────────
-
-// Se usan cuando no hay sesión activa o Supabase no devuelve datos válidos
-const DEMO_PRESUPUESTO = {
-  total: 38_972.45,
-  distribución: [
-    { tipo: 'Prospección', color: '#6366f1', porcentaje: 45, monto: 17_537.60 },
-    { tipo: 'Remarketing',  color: '#8b5cf6', porcentaje: 28, monto: 10_912.29 },
-    { tipo: 'Retargeting',  color: '#06b6d4', porcentaje: 18, monto:  7_015.04 },
-    { tipo: 'Conversión',   color: '#10b981', porcentaje:  9, monto:  3_507.52 },
-  ] satisfies SegmentoPresupuesto[],
-}
-
 // ─── Función de obtención de datos ───────────────────────────────────────────
 
 interface DatosPresupuesto {
@@ -47,11 +34,10 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
   try {
     const supabase = await crearClienteServidor()
 
-    // Sin sesión → datos demo, evitar consultas sin contexto de tenant
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return DEMO_PRESUPUESTO
+    if (!user) return { total: 0, distribución: [] }
 
     // Fecha de inicio: hace 30 días en formato ISO
     const hace30Dias = new Date()
@@ -70,10 +56,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
       `)
       .gte('daily_metrics.fecha', fechaInicio)
 
-    // Si falla la query o no hay datos → silenciosamente usar demo
-    if (error || !campañas || campañas.length === 0) {
-      return DEMO_PRESUPUESTO
-    }
+    if (error || !campañas || campañas.length === 0) return { total: 0, distribución: [] }
 
     // Acumular gasto por tipo de campaña
     const gastoPorTipo: Record<string, number> = {}
@@ -93,8 +76,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
       }
     }
 
-    // Sin gasto acumulado → usar demo
-    if (totalCentavos === 0) return DEMO_PRESUPUESTO
+    if (totalCentavos === 0) return { total: 0, distribución: [] }
 
     // Convertir a USD y calcular porcentajes
     const totalUSD = totalCentavos / 100
@@ -109,8 +91,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
 
     return { total: totalUSD, distribución }
   } catch {
-    // Cualquier excepción no esperada → datos demo, sin romper la UI
-    return DEMO_PRESUPUESTO
+    return { total: 0, distribución: [] }
   }
 }
 

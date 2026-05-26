@@ -40,18 +40,37 @@ export interface UsuarioAutenticado {
 }
 
 // Resuelve el tenant_id usando el cliente del usuario (respeta RLS en tenant_members)
+// Orden de búsqueda: 1) tenant_members, 2) propietario del tenant, 3) fallback a userId
 async function resolverTenant(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   email: string
 ): Promise<UsuarioAutenticado> {
+  // 1. Buscar como miembro de un tenant
   const { data: miembro } = await supabase
     .from('tenant_members')
     .select('tenant_id')
     .eq('user_id', userId)
     .single()
-  return { id: userId, email, tenantId: miembro?.tenant_id ?? userId, supabase }
+
+  if (miembro?.tenant_id) {
+    return { id: userId, email, tenantId: miembro.tenant_id, supabase }
+  }
+
+  // 2. Buscar como propietario del tenant (usando admin para evitar problemas de RLS en tenants)
+  const { data: tenant } = await getSupabaseAdmin()
+    .from('tenants')
+    .select('id')
+    .eq('owner_id', userId)
+    .single()
+
+  if (tenant?.id) {
+    return { id: userId, email, tenantId: tenant.id, supabase }
+  }
+
+  // 3. Fallback: usar userId (cuando el tenant aún no fue creado)
+  return { id: userId, email, tenantId: userId, supabase }
 }
 
 // Autenticar request: soporta Bearer token y cookies de sesión Supabase

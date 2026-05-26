@@ -10,18 +10,19 @@ export async function GET(req: NextRequest) {
   try {
     const { data: cuenta } = await usuario.supabase
       .from('meta_accounts')
-      .select('id, ad_account_id, created_at, token_expiry')
+      .select('id, meta_account_id, nombre_cuenta, created_at')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .limit(1)
       .single()
 
     return NextResponse.json({
       exito: true,
       datos: {
         configurada: Boolean(cuenta),
-        adAccountId: cuenta?.ad_account_id ?? null,
+        adAccountId: cuenta?.meta_account_id ?? null,
+        nombreCuenta: cuenta?.nombre_cuenta ?? null,
         configuradaDesde: cuenta?.created_at ?? null,
-        tokenExpiry: cuenta?.token_expiry ?? null,
       },
     })
   } catch {
@@ -53,22 +54,22 @@ export async function POST(req: NextRequest) {
     console.info(`[api/meta-config] Token de Meta validado correctamente: tenant=${usuario.tenantId} totalCampañas=${campañas.length}`)
 
     // Normalizar el ID de cuenta — agregar prefijo "act_" si no lo tiene
-    const adAccountIdNormalizado = ad_account_id.startsWith('act_')
+    const metaAccountIdNormalizado = ad_account_id.startsWith('act_')
       ? ad_account_id
       : `act_${ad_account_id}`
 
-    // Guardar o actualizar la cuenta en Supabase (upsert por tenant_id)
+    // Guardar o actualizar la cuenta en Supabase (upsert por tenant_id + meta_account_id)
     const { data: cuenta, error } = await usuario.supabase
       .from('meta_accounts')
       .upsert(
         {
           tenant_id: usuario.tenantId,
           access_token,
-          ad_account_id: adAccountIdNormalizado,
+          meta_account_id: metaAccountIdNormalizado,
           activa: true,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'tenant_id' },
+        { onConflict: 'tenant_id,meta_account_id' },
       )
       .select()
       .single()
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       exito: true,
       datos: {
         configurada: true,
-        adAccountId: cuenta.ad_account_id,
+        adAccountId: cuenta.meta_account_id,
         totalCampañasEncontradas: campañas.length,
       },
       mensaje: `Cuenta Meta configurada correctamente. Se encontraron ${campañas.length} campañas.`,

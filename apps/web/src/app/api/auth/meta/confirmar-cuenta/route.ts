@@ -22,17 +22,22 @@ export async function POST(req: NextRequest) {
     const adAccountIdNormalizado = accountId.startsWith('act_') ? accountId : `act_${accountId}`
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (getSupabaseAdmin().from('meta_accounts') as any)
+    const { error: errorGuardar } = await (getSupabaseAdmin().from('meta_accounts') as any)
       .upsert(
         {
           tenant_id: tenantId,
           access_token: longToken,
-          ad_account_id: adAccountIdNormalizado,
+          meta_account_id: adAccountIdNormalizado,
           activa: true,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'tenant_id' }
+        { onConflict: 'tenant_id,meta_account_id' }
       )
+
+    if (errorGuardar) {
+      console.error('[meta/confirmar-cuenta] Error al guardar cuenta Meta:', errorGuardar)
+      return NextResponse.json({ exito: false, error: 'Error al guardar la cuenta en la base de datos' }, { status: 500 })
+    }
 
     const respuesta = NextResponse.json({ exito: true })
     respuesta.cookies.delete('meta_oauth_tenant')

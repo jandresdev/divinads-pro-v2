@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { PieChart as PieChartIcon } from 'lucide-react'
 import { cn, formatearMoneda } from '@/lib/utils'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -49,8 +50,20 @@ export default function GraficoPresupuesto({
   total,
   distribución,
 }: PropsGraficoPresupuesto) {
-  // Índice del segmento activo durante el hover (null = ninguno)
   const [segmentoActivo, setSegmentoActivo] = useState<number | null>(null)
+
+  if (distribución.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 h-full flex flex-col">
+        <h2 className="text-base font-semibold text-foreground">Asignación de Presupuesto</h2>
+        <p className="text-xs text-muted-foreground mt-0.5 mb-4">Últimos 30 días</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
+          <PieChartIcon className="w-10 h-10 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">Sin datos de presupuesto aún</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 h-full flex flex-col">

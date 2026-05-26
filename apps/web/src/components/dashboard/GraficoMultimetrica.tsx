@@ -13,8 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -226,6 +225,15 @@ export default function GraficoMultimetrica({ datos }: PropsGrafico) {
       </div>
 
       {/* ── Gráfico Recharts ─────────────────────────────────────────────── */}
+      {datos.length === 0 ? (
+        <div className="h-[280px] flex flex-col items-center justify-center gap-3 text-center">
+          <TrendingUp className="w-10 h-10 text-muted-foreground/30" />
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Sin datos de rendimiento aún</p>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">Conecta tu cuenta de Meta Ads para ver las métricas reales</p>
+          </div>
+        </div>
+      ) : (
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={datos} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           {/* Solo cuadrícula horizontal, tenue */}
@@ -317,6 +325,7 @@ export default function GraficoMultimetrica({ datos }: PropsGrafico) {
           )}
         </LineChart>
       </ResponsiveContainer>
+      )}
     </div>
   )
 }

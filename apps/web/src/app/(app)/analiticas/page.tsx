@@ -46,23 +46,6 @@ interface ResumenKPIs {
   cpa: number
 }
 
-// ─── Datos demo (30 días) ─────────────────────────────────────────────────────
-
-function generarDemoAnaliticas(dias: number): DatoPunto[] {
-  return Array.from({ length: dias }, (_, i) => {
-    const fecha = new Date(Date.now() - (dias - 1 - i) * 86_400_000)
-    const v = 0.8 + Math.random() * 0.4
-    return {
-      fecha: fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }),
-      gasto: Math.round(1250 * v * 100) / 100,
-      roas: Math.round(4.2 * v * 10) / 10,
-      ctr: Math.round(3.1 * v * 10) / 10,
-      conversiones: Math.round(42 * v),
-      cpa: Math.round(29 * (2 - v) * 100) / 100,
-    }
-  })
-}
-
 // ─── Tooltip personalizado ────────────────────────────────────────────────────
 
 function TooltipPersonalizado({
@@ -193,20 +176,19 @@ export default function PaginaAnaliticas() {
               conversiones: d.conversiones ?? 0,
               cpa: d.cpa ?? 0,
             }))
-          setDatos(puntos.length > 0 ? puntos : generarDemoAnaliticas(dias))
+          setDatos(puntos)
         } else {
-          setDatos(generarDemoAnaliticas(dias))
+          setDatos([])
         }
 
         if (kpisJson.exito) {
           setKpis(kpisJson.datos)
         }
       } else {
-        setDatos(generarDemoAnaliticas(dias))
+        setDatos([])
       }
     } catch {
-      const dias = PERIODOS.find((x) => x.valor === p)?.dias ?? 30
-      setDatos(generarDemoAnaliticas(dias))
+      setDatos([])
     } finally {
       setCargando(false)
     }
@@ -311,6 +293,18 @@ export default function PaginaAnaliticas() {
         {cargando ? (
           <div className="h-64 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : datos.length === 0 ? (
+          <div className="h-64 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="w-12 h-12 rounded-xl bg-muted/10 flex items-center justify-center">
+              <div className="w-6 h-6 rounded border-2 border-dashed border-muted-foreground/30" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Sin datos para este período</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">
+                Conecta tu cuenta de Meta Ads para ver analíticas reales
+              </p>
+            </div>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>

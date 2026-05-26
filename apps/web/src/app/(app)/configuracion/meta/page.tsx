@@ -37,6 +37,7 @@ export default function PaginaConectarMeta() {
       return 'Error al obtener el token de Meta. Revisa los logs del servidor para más detalles.'
     }
     if (errorOAuth === 'oauth_error') return 'Error inesperado durante la autenticación con Meta. Intenta de nuevo.'
+    if (errorOAuth === 'db_error') return 'La cuenta fue autorizada por Meta pero no se pudo guardar en la base de datos. Intenta de nuevo.'
     return ''
   })
   const [exitoManual, setExitoManual] = useState(false)

@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
+// Deriva la URL base de la app desde env var o desde los headers del request de Vercel
+function obtenerAppUrl(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
+  const proto = req.headers.get('x-forwarded-proto') ?? 'https'
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
+  return `${proto}://${host}`
+}
+
 // GET /api/auth/meta/iniciar — inicia el flujo OAuth de Meta Ads
 export async function GET(req: NextRequest) {
   const usuario = await autenticarRequest(req)
   if (!usuario) return noAutorizado()
 
   const appId = process.env.META_APP_ID
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const appUrl = obtenerAppUrl(req)
 
   if (!appId) {
     return NextResponse.json(

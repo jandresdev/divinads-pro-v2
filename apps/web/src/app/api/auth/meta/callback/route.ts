@@ -104,17 +104,25 @@ export async function GET(req: NextRequest) {
     if (cuentas.length === 1) {
       // Una sola cuenta: conectar automáticamente
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (getSupabaseAdmin().from('meta_accounts') as any)
+      const { error: errorGuardar } = await (getSupabaseAdmin().from('meta_accounts') as any)
         .upsert(
           {
             tenant_id: tenantId,
             access_token: longToken,
-            ad_account_id: cuentas[0].id,
+            meta_account_id: cuentas[0].id,
+            nombre_cuenta: cuentas[0].name ?? null,
+            moneda: cuentas[0].currency ?? 'USD',
             activa: true,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'tenant_id' }
+          { onConflict: 'tenant_id,meta_account_id' }
         )
+
+      if (errorGuardar) {
+        console.error('[meta/callback] Error al guardar cuenta Meta en Supabase:', errorGuardar)
+        const params = new URLSearchParams({ error: 'db_error', detalle: errorGuardar.message?.substring(0, 100) ?? '' })
+        return NextResponse.redirect(`${appUrl}/configuracion/meta?${params}`)
+      }
 
       const respuesta = NextResponse.redirect(`${appUrl}/configuracion/meta?exito=1`)
       respuesta.cookies.delete('meta_oauth_tenant')

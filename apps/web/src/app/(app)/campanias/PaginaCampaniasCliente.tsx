@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react'
 import { Search, Plus, X, Megaphone } from 'lucide-react'
 import { cn, formatearMoneda, formatearNumero } from '@/lib/utils'
 import TablaCampañas, { type DatoCampaña } from '@/components/dashboard/TablaCampañas'
+import SinConexionMeta from '@/components/SinConexionMeta'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -303,7 +304,9 @@ export default function PaginaCampaniasCliente({ campañas }: PropsPaginaCampani
         </div>
 
         {/* ── Tabla de campañas ──────────────────────────────────────────── */}
-        {campañasFiltradas.length > 0 ? (
+        {campañas.length === 0 ? (
+          <SinConexionMeta mensaje="Conecta tu cuenta de Meta Ads para sincronizar y monitorear tus campañas en tiempo real." />
+        ) : campañasFiltradas.length > 0 ? (
           <div>
             <p className="text-xs text-muted-foreground mb-3">
               Mostrando {campañasFiltradas.length} de {campañas.length} campañas · Métricas últimos 30 días
@@ -323,14 +326,12 @@ export default function PaginaCampaniasCliente({ campañas }: PropsPaginaCampani
                   : 'No hay campañas con los filtros seleccionados'}
               </p>
             </div>
-            {(busqueda || filtroEstado !== 'todas' || filtroTipo !== 'todos') && (
-              <button
-                onClick={() => { setBusqueda(''); setFiltroEstado('todas'); setFiltroTipo('todos') }}
-                className="text-sm text-primary hover:underline"
-              >
-                Limpiar filtros
-              </button>
-            )}
+            <button
+              onClick={() => { setBusqueda(''); setFiltroEstado('todas'); setFiltroTipo('todos') }}
+              className="text-sm text-primary hover:underline"
+            >
+              Limpiar filtros
+            </button>
           </div>
         )}
       </div>

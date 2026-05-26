@@ -20,7 +20,7 @@ export interface ResultadoSincronizacion {
 export interface CuentaMeta {
   tenant_id: string
   access_token: string
-  ad_account_id: string
+  meta_account_id: string
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +168,7 @@ async function sincronizarMetricas(
 // Incluye campañas + métricas del día actual
 export async function ejecutarSincronizacion(
   tenantId: string,
-  accountMeta: { access_token: string; ad_account_id: string },
+  accountMeta: { access_token: string; meta_account_id: string },
 ): Promise<ResultadoSincronizacion> {
   const inicio   = Date.now()
   const fechaHoy = format(new Date(), 'yyyy-MM-dd')
@@ -176,7 +176,7 @@ export async function ejecutarSincronizacion(
   try {
     const clienteMeta = new ClienteMetaAds(
       accountMeta.access_token,
-      accountMeta.ad_account_id,
+      accountMeta.meta_account_id,
     )
 
     // Paso 1: obtener campañas de Meta y sincronizar
@@ -240,7 +240,7 @@ export async function jobSincronizarTodosLosTenants(): Promise<void> {
   // Obtener todos los tenants con cuenta Meta activa
   const { data: cuentasMeta, error } = await supabaseAdmin
     .from('meta_accounts')
-    .select('tenant_id, access_token, ad_account_id')
+    .select('tenant_id, access_token, meta_account_id')
     .eq('activa', true)
 
   if (error) {
@@ -264,8 +264,8 @@ export async function jobSincronizarTodosLosTenants(): Promise<void> {
     const resultadosLote = await Promise.allSettled(
       lote.map(cuenta =>
         ejecutarSincronizacion(cuenta.tenant_id, {
-          access_token:  cuenta.access_token,
-          ad_account_id: cuenta.ad_account_id,
+          access_token:    cuenta.access_token,
+          meta_account_id: cuenta.meta_account_id,
         }),
       ),
     )
