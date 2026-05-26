@@ -8,12 +8,14 @@ import GraficoPresupuesto, {
 
 // ─── Colores por tipo de campaña ──────────────────────────────────────────────
 
-// Mapa de colores para tipos de campaña conocidos
+// Mapa de colores para tipos de campaña (valores exactos del CHECK constraint)
 const COLORES_TIPO: Record<string, string> = {
-  Prospección: '#6366f1',
-  Remarketing:  '#8b5cf6',
-  Retargeting:  '#06b6d4',
-  Conversión:   '#10b981',
+  PROSPECCIÓN: '#6366f1',
+  REMARKETING: '#8b5cf6',
+  RETARGETING: '#06b6d4',
+  CONVERSIONES: '#10b981',
+  AWARENESS:   '#f59e0b',
+  OTRO:        '#94a3b8',
 }
 
 // Color por defecto para tipos de campaña no catalogados
@@ -48,7 +50,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
     const { data: campañas, error } = await supabase
       .from('campaigns')
       .select(`
-        tipo_campaña,
+        tipo,
         daily_metrics (
           gasto_centavos,
           fecha
@@ -62,9 +64,9 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
     const gastoPorTipo: Record<string, number> = {}
     let totalCentavos = 0
 
-    type FilaPresupuesto = { tipo_campaña?: string | null; daily_metrics: { gasto_centavos?: number; fecha: string }[] }
+    type FilaPresupuesto = { tipo?: string | null; daily_metrics: { gasto_centavos?: number; fecha: string }[] }
     for (const campaña of campañas as unknown as FilaPresupuesto[]) {
-      const tipo = campaña.tipo_campaña ?? 'Otro'
+      const tipo = campaña.tipo ?? 'OTRO'
       const metricas = Array.isArray(campaña.daily_metrics)
         ? campaña.daily_metrics
         : []
