@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 // GET /api/predicciones/:campaignId — predicciones históricas de una campaña específica (últimos 30 días)
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
 
   try {
     const { campaignId } = await params
-    const { data, error } = await usuario.supabase
+    const { data, error } = await getSupabaseAdmin()
       .from('predictions')
       .select('*')
       .eq('tenant_id', usuario.tenantId)

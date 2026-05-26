@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 // GET /api/agente/acciones — historial de acciones del agente para el tenant
 export async function GET(req: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data, error } = await usuario.supabase
+    const { data, error } = await getSupabaseAdmin()
       .from('agent_actions')
       .select('*, campaigns(nombre)')
       .eq('tenant_id', usuario.tenantId)

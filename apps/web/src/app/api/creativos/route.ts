@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 import { ClienteMetaAds, ErrorMetaAPI } from '@/lib/services/meta-ads-cliente'
 
 // GET /api/creativos — anuncios con creativos e insights del tenant
@@ -8,11 +8,15 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data: cuenta, error: errCuenta } = await usuario.supabase
+    // Admin client para bypasear RLS — la política de meta_accounts puede bloquear
+    // al cliente del usuario si compara tenant_id con auth.uid()
+    const admin = getSupabaseAdmin()
+    const { data: cuenta, error: errCuenta } = await admin
       .from('meta_accounts')
       .select('access_token, meta_account_id')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .order('updated_at', { ascending: false })
       .limit(1)
       .single()
 

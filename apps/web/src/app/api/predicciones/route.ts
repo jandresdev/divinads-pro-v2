@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 // GET /api/predicciones — predicciones más recientes de todas las campañas del tenant
 export async function GET(req: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data, error } = await usuario.supabase
+    const { data, error } = await getSupabaseAdmin()
       .from('predictions')
       .select('*, campaigns(nombre, tipo_campaña)')
       .eq('tenant_id', usuario.tenantId)

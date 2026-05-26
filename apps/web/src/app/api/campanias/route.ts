@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 // GET /api/campanias — listar todas las campañas del tenant
 export async function GET(req: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data: campañas, error } = await usuario.supabase
+    const { data: campañas, error } = await getSupabaseAdmin()
       .from('campaigns')
       .select('*, daily_metrics(fecha, gasto_centavos, roas, conversiones, ctr, cpc, cpa)')
       .eq('tenant_id', usuario.tenantId)
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { data: campaña, error } = await usuario.supabase
+    const { data: campaña, error } = await getSupabaseAdmin()
       .from('campaigns')
       .insert({
         tenant_id:                   usuario.tenantId,

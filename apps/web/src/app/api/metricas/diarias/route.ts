@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 // GET /api/metricas/diarias — serie de tiempo, acepta ?dias=N (default 30, max 90)
 export async function GET(req: NextRequest) {
@@ -11,7 +11,8 @@ export async function GET(req: NextRequest) {
     const dias = Math.min(Math.max(diasParam, 1), 90)
     const fechaDesde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const { data: metricas, error } = await usuario.supabase
+    const admin = getSupabaseAdmin()
+    const { data: metricas, error } = await admin
       .from('daily_metrics')
       .select('fecha, gasto_centavos, roas, ctr, cpc, conversiones, cpa')
       .eq('tenant_id', usuario.tenantId)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 
 interface FilaMetrica {
   gasto_centavos: number | null
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
     const fechaHasta = hasta ?? new Date().toISOString().split('T')[0]
     const fechaDesde = desde ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const { data: metricas, error } = await usuario.supabase
+    const admin = getSupabaseAdmin()
+    const { data: metricas, error } = await admin
       .from('daily_metrics')
       .select('fecha, gasto_centavos, roas, ctr, cpc, conversiones, cpa')
       .eq('tenant_id', usuario.tenantId)
