@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: callbackUrl,
-    scope: 'ads_read,ads_management,business_management,read_insights',
+    scope: 'ads_read,ads_management,business_management',
     response_type: 'code',
     state: usuario.tenantId,
   })
