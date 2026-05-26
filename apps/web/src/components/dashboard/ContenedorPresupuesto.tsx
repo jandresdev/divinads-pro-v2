@@ -1,7 +1,7 @@
 // Server Component — obtiene distribución de presupuesto por tipo de campaña
 // desde Supabase y lo pasa al gráfico cliente. Fallback silencioso a demo.
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import GraficoPresupuesto, {
   type SegmentoPresupuesto,
 } from './GraficoPresupuesto'
@@ -34,12 +34,9 @@ interface DatosPresupuesto {
  */
 async function obtenerDistribucion(): Promise<DatosPresupuesto> {
   try {
-    const supabase = await crearClienteServidor()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return { total: 0, distribución: [] }
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return { total: 0, distribución: [] }
 
     // Fecha de inicio: hace 30 días en formato ISO
     const hace30Dias = new Date()
@@ -47,7 +44,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
     const fechaInicio = hace30Dias.toISOString().split('T')[0]
 
     // Obtener campañas con sus métricas diarias de los últimos 30 días
-    const { data: campañas, error } = await supabase
+    const { data: campañas, error } = await ctx.admin
       .from('campaigns')
       .select(`
         tipo,
@@ -56,6 +53,7 @@ async function obtenerDistribucion(): Promise<DatosPresupuesto> {
           fecha
         )
       `)
+      .eq('tenant_id', ctx.tenantId)
       .gte('daily_metrics.fecha', fechaInicio)
 
     if (error || !campañas || campañas.length === 0) return { total: 0, distribución: [] }

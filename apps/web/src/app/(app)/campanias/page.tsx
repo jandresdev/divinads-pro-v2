@@ -1,5 +1,5 @@
 // Server Component — Página de Campañas con datos reales desde Supabase
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import PaginaCampaniasCliente from './PaginaCampaniasCliente'
 import type { DatoCampaña } from '@/components/dashboard/TablaCampañas'
 
@@ -17,8 +17,8 @@ interface FilaMetrica {
 interface FilaCampaña {
   id: string
   nombre: string | null
-  tipo_campaña: string | null
-  estado: string | null
+  tipo: string | null           // Columna correcta (no tipo_campaña)
+  estado: string | null         // Valores CHECK: ACTIVE, PAUSED, ARCHIVED, DELETED
   daily_metrics: FilaMetrica[] | FilaMetrica | null
 }
 
@@ -26,23 +26,20 @@ interface FilaCampaña {
 
 async function obtenerTodasLasCampañas(): Promise<DatoCampaña[]> {
   try {
-    const supabase = await crearClienteServidor()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return []
 
     const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split('T')[0]
 
-    const { data: filas, error } = await supabase
+    const { data: filas, error } = await ctx.admin
       .from('campaigns')
       .select(`
         id,
         nombre,
-        tipo_campaña,
+        tipo,
         estado,
         daily_metrics (
           gasto_centavos,
@@ -53,6 +50,8 @@ async function obtenerTodasLasCampañas(): Promise<DatoCampaña[]> {
           fecha
         )
       `)
+      .eq('tenant_id', ctx.tenantId)
+      .neq('estado', 'DELETED')
       .order('created_at', { ascending: false })
       .limit(100)
 
@@ -79,8 +78,9 @@ async function obtenerTodasLasCampañas(): Promise<DatoCampaña[]> {
         return {
           id: fila.id,
           nombre: fila.nombre ?? 'Sin nombre',
-          tipo: fila.tipo_campaña ?? 'Otro',
-          estado: fila.estado === 'pausada' ? 'pausada' : 'activa',
+          tipo: fila.tipo ?? 'OTRO',
+          // El estado del DB es ACTIVE/PAUSED — mapear al formato de la UI
+          estado: fila.estado === 'PAUSED' ? 'pausada' : 'activa',
           gasto: metricas.reduce((acc, m) => acc + (m.gasto_centavos ?? 0), 0) / 100,
           roas: metricas.reduce((acc, m) => acc + (m.roas ?? 0), 0) / n,
           ctr: metricas.reduce((acc, m) => acc + (m.ctr ?? 0), 0) / n,

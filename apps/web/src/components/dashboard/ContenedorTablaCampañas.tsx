@@ -2,7 +2,7 @@
 // y los pasa al componente cliente TablaCampañas.
 // Si el usuario está autenticado pero no tiene datos, muestra estado vacío (no datos demo).
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import TablaCampañas, { type DatoCampaña } from './TablaCampañas'
 import SinConexionMeta from '@/components/SinConexionMeta'
 
@@ -37,17 +37,13 @@ interface FilaCampaña {
  */
 async function obtenerCampañas(): Promise<{ campañas: DatoCampaña[]; autenticado: boolean }> {
   try {
-    const supabase = await crearClienteServidor()
+    // Usar admin client para bypasear RLS — la política puede comparar tenant_id con
+    // auth.uid() en vez de resolver el tenant correctamente, bloqueando las lecturas
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return { campañas: [], autenticado: false }
 
-    // Sin sesión activa → sin datos (la UI mostrará estado vacío apropiado)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return { campañas: [], autenticado: false }
-
-    // Consulta con join a daily_metrics — se toman todas las métricas y luego
-    // se filtra la más reciente en memoria para máxima compatibilidad
-    const { data: filas, error } = await supabase
+    // Consulta con join a daily_metrics — filtro explícito por tenant_id
+    const { data: filas, error } = await ctx.admin
       .from('campaigns')
       .select(`
         id,
@@ -63,6 +59,7 @@ async function obtenerCampañas(): Promise<{ campañas: DatoCampaña[]; autentic
           fecha
         )
       `)
+      .eq('tenant_id', ctx.tenantId)
       .order('created_at', { ascending: false })
       .limit(10)
 

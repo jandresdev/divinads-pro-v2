@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 import { ejecutarSincronizacion } from '@/lib/jobs/sincronizar-meta'
 
 // POST /api/sincronizacion — dispara una sincronización inmediata para el tenant autenticado
@@ -8,12 +8,15 @@ export async function POST(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    // Obtener la cuenta Meta activa del tenant (incluye UUID para FK en campaigns)
-    const { data: cuenta, error: errorCuenta } = await usuario.supabase
+    // Usar cliente admin para bypasear RLS — la política de meta_accounts puede bloquear
+    // al cliente del usuario si compara tenant_id con auth.uid() en vez del tenant real
+    const admin = getSupabaseAdmin()
+    const { data: cuenta, error: errorCuenta } = await admin
       .from('meta_accounts')
       .select('id, access_token, meta_account_id')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .order('updated_at', { ascending: false }) // La más reciente primero
       .limit(1)
       .single()
 
@@ -54,7 +57,8 @@ export async function GET(req: NextRequest) {
   try {
     // La forma más directa de saber el último sync es mirar el updated_at más reciente
     // en daily_metrics — ese campo se actualiza en cada upsert exitoso
-    const { data: ultimaMetrica } = await usuario.supabase
+    const adminGet = getSupabaseAdmin()
+    const { data: ultimaMetrica } = await adminGet
       .from('daily_metrics')
       .select('created_at, fecha')
       .eq('tenant_id', usuario.tenantId)

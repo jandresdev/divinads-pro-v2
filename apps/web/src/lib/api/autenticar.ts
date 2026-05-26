@@ -7,9 +7,11 @@ import { cookies } from 'next/headers'
 // Cliente admin con Service Role — inicializado de forma lazy para evitar
 // crash en módulo cuando SUPABASE_SERVICE_ROLE_KEY no está configurado.
 // Usa el anon key como fallback en dev local (queries respetarán RLS).
-let _adminClient: ReturnType<typeof createClient> | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _adminClient: any = null
 
-export function getSupabaseAdmin(): ReturnType<typeof createClient> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getSupabaseAdmin(): any {
   if (!_adminClient) {
     _adminClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

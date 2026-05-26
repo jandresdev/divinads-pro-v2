@@ -3,7 +3,7 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import GraficoMultimetrica from './GraficoMultimetrica'
 
 // Estructura que espera el gráfico cliente
@@ -20,20 +20,18 @@ interface DatoPunto {
  */
 async function obtenerDatosGrafico(diasPeriodo: number): Promise<DatoPunto[]> {
   try {
-    const supabase = await crearClienteServidor()
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return []
 
     const fechaDesde = new Date(Date.now() - diasPeriodo * 86_400_000).toISOString().split('T')[0]
 
-    // Consultar el período seleccionado con datos del tenant (RLS filtra automáticamente)
+    // Consultar el período seleccionado con filtro explícito por tenant
     // Nota: puede haber múltiples campañas con la misma fecha, se agregan por fecha
-    const { data: metricas, error } = await supabase
+    const { data: metricas, error } = await ctx.admin
       .from('daily_metrics')
       .select('fecha, gasto_centavos, roas, conversiones, ingresos_centavos')
+      .eq('tenant_id', ctx.tenantId)
       .gte('fecha', fechaDesde)
       .order('fecha', { ascending: true })
       .limit((diasPeriodo + 5) * 10) // x10 para soportar múltiples campañas por día

@@ -8,7 +8,7 @@ import {
   Target,
 } from 'lucide-react'
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import { formatearMoneda, formatearNumero } from '@/lib/utils'
 import TarjetaKPI from './TarjetaKPI'
 import type { Database } from '@/lib/supabase/tipos'
@@ -84,10 +84,9 @@ async function obtenerDatosKPI(diasPeriodo: number): Promise<{
   cpa: MetricaKPI
 } | null> {
   try {
-    const supabase = await crearClienteServidor()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return null
 
     const hoy = new Date()
     const fechaFinActual   = hoy.toISOString().split('T')[0]
@@ -97,14 +96,16 @@ async function obtenerDatosKPI(diasPeriodo: number): Promise<{
     const campos = 'gasto_centavos, ingresos_centavos, impresiones, clics, conversiones, roas, ctr, cpc, cpa'
 
     const [{ data: filasActuales }, { data: filasAnteriores }] = await Promise.all([
-      supabase
+      ctx.admin
         .from('daily_metrics')
         .select(campos)
+        .eq('tenant_id', ctx.tenantId)
         .gte('fecha', fechaInicioActual)
         .lte('fecha', fechaFinActual),
-      supabase
+      ctx.admin
         .from('daily_metrics')
         .select(campos)
+        .eq('tenant_id', ctx.tenantId)
         .gte('fecha', fechaInicioAnterior)
         .lt('fecha', fechaInicioActual),
     ])

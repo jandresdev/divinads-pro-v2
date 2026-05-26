@@ -2,7 +2,7 @@
 // y los pasa al componente cliente SidebarInsightsIA.
 // Sin datos demo para usuarios autenticados — muestra estado vacío real.
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import SidebarInsightsIA, { type Insight } from './SidebarInsightsIA'
 
 // ─── Tipos internos de Supabase ───────────────────────────────────────────────
@@ -58,17 +58,14 @@ function tiempoRelativo(fechaISO: string): string {
  */
 async function obtenerInsights(): Promise<Insight[]> {
   try {
-    const supabase = await crearClienteServidor()
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return []
 
-    // Sin sesión activa → lista vacía (sin datos demo para evitar confusión)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
-
-    const { data: filas, error } = await supabase
+    const { data: filas, error } = await ctx.admin
       .from('agent_actions')
       .select('id, tipo_accion, descripcion, confianza, created_at')
+      .eq('tenant_id', ctx.tenantId)
       .eq('estado', 'completado')
       .order('created_at', { ascending: false })
       .limit(5)

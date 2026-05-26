@@ -2,7 +2,7 @@
 // y las pasa al componente cliente PanelAlertas.
 // Sin datos demo para usuarios autenticados — muestra estado vacío real.
 
-import { crearClienteServidor } from '@/lib/supabase/servidor'
+import { obtenerContextoAdmin } from '@/lib/supabase/servidor'
 import PanelAlertas, { type Alerta } from './PanelAlertas'
 
 // ─── Tipo auxiliar de severidad ───────────────────────────────────────────────
@@ -67,19 +67,16 @@ function tiempoRelativo(fechaISO: string): string {
  */
 async function obtenerAlertas(): Promise<Alerta[]> {
   try {
-    const supabase = await crearClienteServidor()
+    // Usar admin client para bypasear RLS — filtro explícito por tenant_id
+    const ctx = await obtenerContextoAdmin()
+    if (!ctx) return []
 
-    // Sin sesión activa → lista vacía (sin datos demo para evitar confusión)
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return []
-
-    const { data: filas, error } = await supabase
+    const { data: filas, error } = await ctx.admin
       .from('anomalies')
       .select(
         'id, tipo, severidad, nombre_metrica, causa_detectada, estado, campaña:campaign_id(nombre), created_at'
       )
+      .eq('tenant_id', ctx.tenantId)
       .in('estado', ['abierta', 'investigando'])
       .order('severidad', { ascending: false })
       .limit(10)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
+import { autenticarRequest, noAutorizado, getSupabaseAdmin } from '@/lib/api/autenticar'
 import { ClienteMetaAds, ErrorMetaAPI } from '@/lib/services/meta-ads-cliente'
 
 // GET /api/meta-config — estado de la integración Meta del tenant
@@ -8,13 +8,23 @@ export async function GET(req: NextRequest) {
   if (!usuario) return noAutorizado()
 
   try {
-    const { data: cuenta } = await usuario.supabase
+    // Usar cliente admin para bypasear RLS — filtramos manualmente por tenant_id.
+    // El cliente del usuario (con RLS) puede no ver meta_accounts si la política
+    // compara tenant_id con auth.uid() en vez de resolver el tenant correctamente.
+    const admin = getSupabaseAdmin()
+    const { data: cuenta, error } = await admin
       .from('meta_accounts')
       .select('id, meta_account_id, nombre_cuenta, created_at')
       .eq('tenant_id', usuario.tenantId)
       .eq('activa', true)
+      .order('updated_at', { ascending: false }) // La más reciente primero
       .limit(1)
       .single()
+
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = sin filas (cuenta no configurada) — no es un error real
+      console.warn('[api/meta-config] Error consultando meta_accounts:', error.message)
+    }
 
     return NextResponse.json({
       exito: true,
@@ -25,8 +35,8 @@ export async function GET(req: NextRequest) {
         configuradaDesde: cuenta?.created_at ?? null,
       },
     })
-  } catch {
-    // Si no encuentra la cuenta, devolver configurada: false sin lanzar error
+  } catch (err) {
+    console.error('[api/meta-config] Error inesperado en GET:', err)
     return NextResponse.json({ exito: true, datos: { configurada: false } })
   }
 }
@@ -59,7 +69,9 @@ export async function POST(req: NextRequest) {
       : `act_${ad_account_id}`
 
     // Guardar o actualizar la cuenta en Supabase (upsert por tenant_id + meta_account_id)
-    const { data: cuenta, error } = await usuario.supabase
+    // Usamos admin client para bypasear RLS — el usuario puede no tener permiso de escritura
+    const admin = getSupabaseAdmin()
+    const { data: cuenta, error } = await admin
       .from('meta_accounts')
       .upsert(
         {
