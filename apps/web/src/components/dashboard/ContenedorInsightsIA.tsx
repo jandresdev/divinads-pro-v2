@@ -11,8 +11,8 @@ import SidebarInsightsIA, { type Insight } from './SidebarInsightsIA'
 interface FilaAccionAgente {
   id: string
   tipo_accion: string | null
-  descripcion: string | null
-  confianza: number | null
+  explicacion: string | null          // columna real (antes "descripcion")
+  puntaje_confianza: number | null    // columna real (antes "confianza")
   created_at: string | null
 }
 
@@ -64,7 +64,7 @@ async function obtenerInsights(): Promise<Insight[]> {
 
     const { data: filas, error } = await ctx.admin
       .from('agent_actions')
-      .select('id, tipo_accion, descripcion, confianza, created_at')
+      .select('id, tipo_accion, explicacion, puntaje_confianza, created_at')
       .eq('tenant_id', ctx.tenantId)
       .eq('estado', 'completado')
       .order('created_at', { ascending: false })
@@ -83,9 +83,9 @@ async function obtenerInsights(): Promise<Insight[]> {
         return {
           id: fila.id,
           tipo: tipoInsight,
-          titulo: fila.descripcion?.split('.')[0] ?? 'Acción del agente',
-          descripcion: fila.descripcion ?? '',
-          confianza: fila.confianza ?? 80,
+          titulo: fila.explicacion?.split('.')[0] ?? 'Acción del agente',
+          descripcion: fila.explicacion ?? '',
+          confianza: fila.puntaje_confianza ?? 80,
           accion: null,
           timestamp: fila.created_at ? tiempoRelativo(fila.created_at) : 'sin fecha',
         }
