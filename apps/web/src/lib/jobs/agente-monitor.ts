@@ -94,11 +94,10 @@ export async function jobAgenteMonitor(): Promise<void> {
   // Obtener anomalías activas con severidad alta que aún no fueron analizadas por el agente
   const { data: anomalias, error } = await supabaseAdmin
     .from('anomalies')
-    .select('id, tenant_id, campaign_id, tipo, titulo, severidad_score')
-    .eq('activa', true)
-    .gte('severidad_score', SEVERIDAD_MINIMA_ANALISIS)
-    .is('analizada_at', null)         // Solo las que no fueron analizadas todavía
-    .order('severidad_score', { ascending: false }) // Las más críticas primero
+    .select('id, tenant_id, campaign_id, tipo, nombre_metrica, severidad')
+    .in('estado', ['abierta', 'investigando'])
+    .gte('severidad', SEVERIDAD_MINIMA_ANALISIS)
+    .order('severidad', { ascending: false }) // Las más críticas primero
     .limit(5)                          // Máximo 5 por ciclo para controlar costos de API
 
   if (error) {
@@ -120,16 +119,15 @@ export async function jobAgenteMonitor(): Promise<void> {
       anomalia.tenant_id,
       anomalia.campaign_id,
       anomalia.tipo,
-      anomalia.titulo,
-      anomalia.severidad_score
+      anomalia.nombre_metrica ?? anomalia.tipo,
+      anomalia.severidad
     )
 
-    // Marcar la anomalía como analizada para no procesarla de nuevo
+    // Marcar la anomalía como en investigación para no procesarla de nuevo en este ciclo
     const { error: errorUpdate } = await supabaseAdmin
       .from('anomalies')
       .update({
-        analizada_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        estado: 'investigando',
       })
       .eq('id', anomalia.id)
 

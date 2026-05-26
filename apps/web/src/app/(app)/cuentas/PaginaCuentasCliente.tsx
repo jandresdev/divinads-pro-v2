@@ -33,12 +33,14 @@ export default function PaginaCuentasCliente() {
     async function cargar() {
       setCargando(true)
       try {
-        const [resCuenta, resMetricas] = await Promise.all([
+        const [resCuenta, resMetricas, resCampanias] = await Promise.all([
           fetch('/api/meta-config'),
           fetch('/api/metricas'),
+          fetch('/api/campanias'),
         ])
         const jsonCuenta = await resCuenta.json()
         const jsonMetricas = await resMetricas.json()
+        const jsonCampanias = await resCampanias.json()
 
         if (jsonCuenta.exito && jsonCuenta.datos?.configurada) {
           setCuenta({
@@ -49,16 +51,13 @@ export default function PaginaCuentasCliente() {
             configurada_desde: jsonCuenta.datos.configuradaDesde,
           })
 
-          if (jsonMetricas.exito && jsonMetricas.datos) {
-            const d = jsonMetricas.datos
-            setStats({
-              campanias: d.totalCampanias ?? 0,
-              gastoMes: d.gastoTotal ?? 0,
-              roasPromedio: d.roasPromedio ?? 0,
-            })
-          } else {
-            setStats({ campanias: 0, gastoMes: 0, roasPromedio: 0 })
-          }
+          const d = jsonMetricas.exito && jsonMetricas.datos ? jsonMetricas.datos : null
+          const totalCampanias = jsonCampanias.exito ? (jsonCampanias.meta?.total ?? jsonCampanias.datos?.length ?? 0) : 0
+          setStats({
+            campanias: totalCampanias,
+            gastoMes: d?.gasto ?? 0,
+            roasPromedio: d?.roas ?? 0,
+          })
         } else {
           setSinConexion(true)
         }

@@ -12,16 +12,17 @@ type Severidad = 'critica' | 'alta' | 'media' | 'baja'
 // ─── Tipos internos de Supabase ───────────────────────────────────────────────
 
 // Forma esperada de cada fila de la tabla anomalies con el join a campaigns
+// Columnas reales del schema: severidad (0-100), tipo, nombre_metrica, causa_detectada, estado
 interface FilaAnomalia {
   id: string
   tipo: string | null
-  severidad_score: number | null
-  titulo: string | null
-  descripcion: string | null
+  severidad: number | null
+  nombre_metrica: string | null
+  causa_detectada: string | null
+  estado: string | null
   // El join a campaigns retorna un objeto o null
   campaña: { nombre: string } | null
   created_at: string | null
-  revisada: boolean | null
 }
 
 // ─── Utilidad: mapear severidad_score numérico al enum de Severidad ───────────
@@ -77,10 +78,10 @@ async function obtenerAlertas(): Promise<Alerta[]> {
     const { data: filas, error } = await supabase
       .from('anomalies')
       .select(
-        'id, tipo, severidad_score, titulo, descripcion, campaña:campaign_id(nombre), created_at, revisada'
+        'id, tipo, severidad, nombre_metrica, causa_detectada, estado, campaña:campaign_id(nombre), created_at'
       )
-      .eq('activa', true)
-      .order('severidad_score', { ascending: false })
+      .in('estado', ['abierta', 'investigando'])
+      .order('severidad', { ascending: false })
       .limit(10)
 
     // Error de Supabase o sin anomalías → lista vacía real
@@ -90,17 +91,17 @@ async function obtenerAlertas(): Promise<Alerta[]> {
     const alertas: Alerta[] = (filas as unknown as FilaAnomalia[])
       .map((fila): Alerta | null => {
         // Omitir filas sin score de severidad (campo obligatorio para el orden)
-        if (fila.severidad_score == null) return null
+        if (fila.severidad == null) return null
 
         return {
           id: fila.id,
           tipo: fila.tipo ?? 'desconocido',
-          severidad: mapearSeveridad(fila.severidad_score),
-          titulo: fila.titulo ?? 'Anomalía detectada',
+          severidad: mapearSeveridad(fila.severidad),
+          titulo: fila.nombre_metrica ?? 'Anomalía detectada',
           campaña: fila.campaña?.nombre ?? 'Campaña desconocida',
-          descripcion: fila.descripcion ?? '',
+          descripcion: fila.causa_detectada ?? '',
           tiempo: fila.created_at ? tiempoRelativo(fila.created_at) : 'sin fecha',
-          revisada: fila.revisada ?? false,
+          revisada: fila.estado === 'resuelta' || fila.estado === 'ignorada',
         }
       })
       .filter((a): a is Alerta => a !== null)

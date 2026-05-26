@@ -229,7 +229,7 @@ export async function jobCalcularFeatures(): Promise<void> {
   const { data: campañas, error } = await supabaseAdmin
     .from('campaigns')
     .select('id, tenant_id, nombre')
-    .eq('activa', true)
+    .neq('estado', 'DELETED')
 
   if (error) {
     console.error('[calcular-features] Error obteniendo campañas activas — abortando job de features', error.message)

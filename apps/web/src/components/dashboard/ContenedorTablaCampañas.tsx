@@ -22,7 +22,7 @@ interface FilaMetrica {
 interface FilaCampaña {
   id: string
   nombre: string
-  tipo_campaña: string | null
+  tipo: string | null
   estado: string | null
   daily_metrics: FilaMetrica[] | FilaMetrica | null
 }
@@ -52,7 +52,7 @@ async function obtenerCampañas(): Promise<{ campañas: DatoCampaña[]; autentic
       .select(`
         id,
         nombre,
-        tipo_campaña,
+        tipo,
         estado,
         daily_metrics (
           gasto_centavos,
@@ -94,8 +94,8 @@ async function obtenerCampañas(): Promise<{ campañas: DatoCampaña[]; autentic
         return {
           id: fila.id,
           nombre: fila.nombre ?? 'Sin nombre',
-          tipo: fila.tipo_campaña ?? 'Otro',
-          estado: fila.estado === 'pausada' ? 'pausada' : 'activa',
+          tipo: fila.tipo ?? 'OTRO',
+          estado: fila.estado === 'PAUSED' ? 'pausada' : 'activa',
           gasto: (metricaReciente.gasto_centavos ?? 0) / 100,
           roas: metricaReciente.roas ?? 0,
           ctr: metricaReciente.ctr ?? 0,

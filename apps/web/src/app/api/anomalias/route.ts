@@ -9,10 +9,10 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await usuario.supabase
       .from('anomalies')
-      .select('*, campaigns(nombre, tipo_campaña)')
+      .select('*, campaigns(nombre, tipo)')
       .eq('tenant_id', usuario.tenantId)
-      .eq('activa', true)
-      .order('severidad_score', { ascending: false })
+      .in('estado', ['abierta', 'investigando'])
+      .order('severidad', { ascending: false })
       .limit(20)
 
     if (error) throw error

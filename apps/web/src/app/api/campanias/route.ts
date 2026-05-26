@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       .from('campaigns')
       .select('*, daily_metrics(fecha, gasto_centavos, roas, conversiones, ctr, cpc, cpa)')
       .eq('tenant_id', usuario.tenantId)
-      .eq('activa', true)
+      .neq('estado', 'DELETED')
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { nombre, meta_campaign_id, tipo_campaña, presupuesto_diario_centavos } = body
+    const { nombre, meta_campaign_id, tipo, presupuesto_diario_centavos } = body
 
     if (!nombre || !meta_campaign_id) {
       return NextResponse.json(
@@ -47,12 +47,12 @@ export async function POST(req: NextRequest) {
     const { data: campaña, error } = await usuario.supabase
       .from('campaigns')
       .insert({
-        tenant_id: usuario.tenantId,
+        tenant_id:                   usuario.tenantId,
         nombre,
         meta_campaign_id,
-        tipo_campaña,
-        presupuesto_diario_centavos,
-        activa: true,
+        tipo:                        tipo ?? 'OTRO',
+        presupuesto_diario_centavos: presupuesto_diario_centavos ?? null,
+        estado:                      'ACTIVE',
       })
       .select()
       .single()

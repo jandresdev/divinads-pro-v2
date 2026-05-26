@@ -15,7 +15,7 @@ import { detectarAnomalias, AnomaliaDetectada, TipoAnomalia } from '@/lib/servic
 interface AnomaliaExistente {
   id: string
   tipo: TipoAnomalia
-  activa: boolean
+  estado: string
 }
 
 // Fila de feature snapshot obtenida desde Supabase (con join a campaigns)
@@ -49,10 +49,10 @@ async function persistirAnomalias(
   // Obtener todas las anomalías activas de esta campaña en una sola query
   const { data: existentes, error: errorConsulta } = await supabaseAdmin
     .from('anomalies')
-    .select('id, tipo, activa')
+    .select('id, tipo, estado')
     .eq('tenant_id', tenantId)
     .eq('campaign_id', campaignId)
-    .eq('activa', true)
+    .in('estado', ['abierta', 'investigando'])
 
   if (errorConsulta) {
     console.warn(`[detectar-anomalias] Error consultando anomalías existentes — se omite persistencia para esta campaña: tenant=${tenantId} campaign=${campaignId}`, errorConsulta.message)
@@ -73,8 +73,8 @@ async function persistirAnomalias(
       const { error } = await supabaseAdmin
         .from('anomalies')
         .update({
-          activa:     false,
-          updated_at: new Date().toISOString(),
+          estado:      'resuelta',
+          resuelta_en: new Date().toISOString(),
         })
         .eq('id', existente.id)
 
@@ -96,15 +96,14 @@ async function persistirAnomalias(
       const { error } = await supabaseAdmin
         .from('anomalies')
         .update({
-          severidad_score: anomalia.severidadScore,
-          titulo:          anomalia.titulo,
-          descripcion:     anomalia.descripcion,
-          updated_at:      new Date().toISOString(),
+          severidad:      anomalia.severidadScore,
+          nombre_metrica: anomalia.titulo,
+          causa_detectada: anomalia.descripcion,
         })
         .eq('tenant_id', tenantId)
         .eq('campaign_id', campaignId)
         .eq('tipo', anomalia.tipo)
-        .eq('activa', true)
+        .in('estado', ['abierta', 'investigando'])
 
       if (error) {
         console.warn(`[detectar-anomalias] Error actualizando anomalía existente: tenant=${tenantId} campaign=${campaignId} tipo=${anomalia.tipo}`, error.message)
@@ -119,11 +118,10 @@ async function persistirAnomalias(
           tenant_id:       tenantId,
           campaign_id:     campaignId,
           tipo:            anomalia.tipo,
-          severidad_score: anomalia.severidadScore,
-          titulo:          anomalia.titulo,
-          descripcion:     anomalia.descripcion,
-          activa:          true,
-          revisada:        false,
+          severidad:       anomalia.severidadScore,
+          nombre_metrica:  anomalia.titulo,
+          causa_detectada: anomalia.descripcion,
+          estado:          'abierta',
         })
 
       if (error) {

@@ -18,9 +18,10 @@ export interface ResultadoSincronizacion {
 
 // Datos de cuenta Meta que vienen de la tabla meta_accounts
 export interface CuentaMeta {
+  id: string            // UUID de meta_accounts (FK para campaigns.meta_account_id)
   tenant_id: string
   access_token: string
-  meta_account_id: string
+  meta_account_id: string  // texto "act_XXXXX" para llamadas a Meta API
 }
 
 // ---------------------------------------------------------------------------
@@ -28,21 +29,23 @@ export interface CuentaMeta {
 // ---------------------------------------------------------------------------
 
 // Inferir tipo de campaña según el objetivo de Meta
+// Los valores deben coincidir exactamente con el CHECK constraint de la BD:
+// 'PROSPECCIÓN' | 'REMARKETING' | 'RETARGETING' | 'CONVERSIONES' | 'AWARENESS' | 'OTRO'
 function inferirTipoCampaña(objective: string): string {
   const MAPA_OBJETIVOS: Record<string, string> = {
-    'OUTCOME_TRAFFIC':        'Prospección',
-    'OUTCOME_AWARENESS':      'Prospección',
-    'OUTCOME_REACH':          'Prospección',
-    'OUTCOME_ENGAGEMENT':     'Remarketing',
-    'OUTCOME_LEADS':          'Conversión',
-    'OUTCOME_SALES':          'Conversión',
-    'CONVERSIONS':            'Conversión',
-    'PRODUCT_CATALOG_SALES':  'Conversión',
-    'RETARGETING':            'Retargeting',
-    'LINK_CLICKS':            'Prospección',
-    'VIDEO_VIEWS':            'Prospección',
+    'OUTCOME_TRAFFIC':        'PROSPECCIÓN',
+    'OUTCOME_AWARENESS':      'AWARENESS',
+    'OUTCOME_REACH':          'AWARENESS',
+    'OUTCOME_ENGAGEMENT':     'REMARKETING',
+    'OUTCOME_LEADS':          'CONVERSIONES',
+    'OUTCOME_SALES':          'CONVERSIONES',
+    'CONVERSIONS':            'CONVERSIONES',
+    'PRODUCT_CATALOG_SALES':  'CONVERSIONES',
+    'RETARGETING':            'RETARGETING',
+    'LINK_CLICKS':            'PROSPECCIÓN',
+    'VIDEO_VIEWS':            'AWARENESS',
   }
-  return MAPA_OBJETIVOS[objective] ?? 'Prospección'
+  return MAPA_OBJETIVOS[objective] ?? 'OTRO'
 }
 
 // ---------------------------------------------------------------------------
@@ -50,30 +53,37 @@ function inferirTipoCampaña(objective: string): string {
 // ---------------------------------------------------------------------------
 
 // Sincronizar las campañas de Meta con la tabla campaigns en Supabase
+// metaAccountUuid: UUID de meta_accounts.id (NO el meta_account_id texto de Meta)
 async function sincronizarCampañas(
   tenantId: string,
-  clienteMeta: ClienteMetaAds,
+  metaAccountUuid: string,
   campañasMeta: Awaited<ReturnType<ClienteMetaAds['obtenerCampañas']>>,
 ): Promise<number> {
   let sincronizadas = 0
 
   for (const campaña of campañasMeta) {
+    // Normalizar estado — la BD acepta solo: ACTIVE, PAUSED, ARCHIVED, DELETED
+    const estado = ['ACTIVE', 'PAUSED', 'ARCHIVED', 'DELETED'].includes(campaña.status)
+      ? campaña.status
+      : 'PAUSED'
+
     const { error } = await supabaseAdmin
       .from('campaigns')
       .upsert(
         {
           tenant_id:                  tenantId,
+          meta_account_id:            metaAccountUuid,   // UUID FK, no el texto "act_XXX"
           meta_campaign_id:           campaña.id,
           nombre:                     campaña.name,
-          estado:                     campaña.status === 'ACTIVE' ? 'activa' : 'pausada',
-          tipo_campaña:               inferirTipoCampaña(campaña.objective),
+          objetivo:                   campaña.objective ?? null,
+          estado,
+          tipo:                       inferirTipoCampaña(campaña.objective ?? ''),
           presupuesto_diario_centavos: campaña.daily_budget
-            ? parseInt(campaña.daily_budget)
+            ? Math.round(parseInt(campaña.daily_budget) * 100)  // Meta devuelve centavos, but ensure it
             : null,
-          activa: campaña.status !== 'DELETED' && campaña.status !== 'ARCHIVED',
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'tenant_id,meta_campaign_id' },
+        { onConflict: 'meta_account_id,meta_campaign_id' },
       )
 
     if (error) {
@@ -128,26 +138,31 @@ async function sincronizarMetricas(
       continue
     }
 
+    const gastoCentavos = Math.round(parseFloat(insight.spend || '0') * 100)
+    const roas          = extraerROAS(insight.purchase_roas)
+
     const { error } = await supabaseAdmin
       .from('daily_metrics')
       .upsert(
         {
-          tenant_id:    tenantId,
-          campaign_id:  campaña.id,
+          tenant_id:       tenantId,
+          campaign_id:     campaña.id,
           fecha,
-          gasto_centavos: Math.round(parseFloat(insight.spend || '0') * 100),
-          impresiones:    parseInt(insight.impressions         || '0'),
-          clics:          parseInt(insight.clicks              || '0'),
-          ctr:            parseFloat(insight.ctr               || '0'),
-          cpc:            parseFloat(insight.cpc               || '0'),
-          cpm:            parseFloat(insight.cpm               || '0'),
-          alcance:        parseInt(insight.reach               || '0'),
-          frecuencia:     parseFloat(insight.frequency         || '0'),
-          conversiones:   extraerConversiones(insight.actions),
-          cpa:            extraerCPA(insight.cost_per_action_type),
-          roas:           extraerROAS(insight.purchase_roas),
+          gasto_centavos:  gastoCentavos,
+          // Ingresos = gasto × ROAS (en centavos; se redondea al entero)
+          ingresos_centavos: Math.round(gastoCentavos * roas),
+          impresiones:     parseInt(insight.impressions || '0'),
+          clics:           parseInt(insight.clicks      || '0'),
+          ctr:             parseFloat(insight.ctr       || '0'),
+          cpc:             parseFloat(insight.cpc       || '0'),
+          cpm:             parseFloat(insight.cpm       || '0'),
+          alcance:         parseInt(insight.reach       || '0'),
+          frecuencia:      parseFloat(insight.frequency || '0'),
+          conversiones:    extraerConversiones(insight.actions),
+          cpa:             extraerCPA(insight.cost_per_action_type),
+          roas,
         },
-        { onConflict: 'tenant_id,campaign_id,fecha' },
+        { onConflict: 'campaign_id,fecha' },
       )
 
     if (error) {
@@ -168,7 +183,7 @@ async function sincronizarMetricas(
 // Incluye campañas + métricas del día actual
 export async function ejecutarSincronizacion(
   tenantId: string,
-  accountMeta: { access_token: string; meta_account_id: string },
+  accountMeta: { access_token: string; meta_account_id: string; uuid: string },
 ): Promise<ResultadoSincronizacion> {
   const inicio   = Date.now()
   const fechaHoy = format(new Date(), 'yyyy-MM-dd')
@@ -184,7 +199,7 @@ export async function ejecutarSincronizacion(
     const campañasMeta          = await clienteMeta.obtenerCampañas()
     const campañasSincronizadas = await sincronizarCampañas(
       tenantId,
-      clienteMeta,
+      accountMeta.uuid,      // UUID de meta_accounts.id (FK para campaigns)
       campañasMeta,
     )
 
@@ -240,7 +255,7 @@ export async function jobSincronizarTodosLosTenants(): Promise<void> {
   // Obtener todos los tenants con cuenta Meta activa
   const { data: cuentasMeta, error } = await supabaseAdmin
     .from('meta_accounts')
-    .select('tenant_id, access_token, meta_account_id')
+    .select('id, tenant_id, access_token, meta_account_id')
     .eq('activa', true)
 
   if (error) {
@@ -264,6 +279,7 @@ export async function jobSincronizarTodosLosTenants(): Promise<void> {
     const resultadosLote = await Promise.allSettled(
       lote.map(cuenta =>
         ejecutarSincronizacion(cuenta.tenant_id, {
+          uuid:            cuenta.id,
           access_token:    cuenta.access_token,
           meta_account_id: cuenta.meta_account_id,
         }),
