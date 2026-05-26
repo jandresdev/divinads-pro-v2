@@ -59,14 +59,14 @@ async function resolverTenant(
   }
 
   // 2. Buscar como propietario del tenant (usando admin para evitar problemas de RLS en tenants)
-  const { data: tenant } = await getSupabaseAdmin()
-    .from('tenants')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: tenant } = await (getSupabaseAdmin().from('tenants') as any)
     .select('id')
     .eq('owner_id', userId)
     .single()
 
-  if (tenant?.id) {
-    return { id: userId, email, tenantId: tenant.id, supabase }
+  if ((tenant as { id?: string } | null)?.id) {
+    return { id: userId, email, tenantId: (tenant as { id: string }).id, supabase }
   }
 
   // 3. Fallback: usar userId (cuando el tenant aún no fue creado)
