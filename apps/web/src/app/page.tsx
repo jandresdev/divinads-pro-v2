@@ -1,9 +1,14 @@
-// Página principal - Redirige al dashboard si autenticado, sino a login
 import { redirect } from 'next/navigation'
+import { crearClienteServidor } from '@/lib/supabase/servidor'
 
-export default function HomePage() {
-  // Por ahora muestra landing básica
-  // TODO: Verificar sesión y redirigir
+export default async function HomePage() {
+  const supabase = await crearClienteServidor()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    redirect('/dashboard')
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
       <div className="text-center space-y-6 max-w-2xl">

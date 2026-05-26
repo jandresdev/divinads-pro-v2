@@ -170,7 +170,7 @@ export default function PaginaAnaliticas() {
 
       // Llamar a API de métricas diarias y KPIs en paralelo
       const [resDaily, resKpis] = await Promise.all([
-        fetch('/api/metricas/diarias'),
+        fetch(`/api/metricas/diarias?dias=${dias}`),
         fetch(`/api/metricas?desde=${fechaDesde}&hasta=${fechaHasta}`),
       ])
 

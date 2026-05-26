@@ -63,8 +63,18 @@ interface FilaAccionAgente {
   created_at: string | null
 }
 
-// Subconjunto válido de tipos de insight que reconocemos
-const TIPOS_VALIDOS = new Set(['oportunidad', 'advertencia', 'logro', 'prediccion'])
+// Mapeo de tipo_accion de agent_actions → tipo de insight visual
+const MAPA_TIPO_ACCION: Record<string, Insight['tipo']> = {
+  pausar_campaña:      'advertencia',
+  reducir_presupuesto: 'advertencia',
+  aumentar_presupuesto: 'oportunidad',
+  solo_monitorear:     'prediccion',
+  // tipos directos (por si el agente ya los guarda así)
+  oportunidad:  'oportunidad',
+  advertencia:  'advertencia',
+  logro:        'logro',
+  prediccion:   'prediccion',
+}
 
 // ─── Utilidad: tiempo relativo ────────────────────────────────────────────────
 
@@ -116,16 +126,17 @@ async function obtenerInsights(): Promise<Insight[]> {
     // Transformar filas al formato que espera SidebarInsightsIA
     const insights: Insight[] = (filas as FilaAccionAgente[])
       .map((fila): Insight | null => {
-        // Omitir filas sin tipo o con tipo desconocido
-        if (!fila.tipo_accion || !TIPOS_VALIDOS.has(fila.tipo_accion)) return null
+        if (!fila.tipo_accion) return null
+        const tipoInsight = MAPA_TIPO_ACCION[fila.tipo_accion]
+        if (!tipoInsight) return null
 
         return {
           id: fila.id,
-          tipo: fila.tipo_accion as Insight['tipo'],
-          titulo: fila.descripcion?.split('.')[0] ?? 'Insight del agente',
+          tipo: tipoInsight,
+          titulo: fila.descripcion?.split('.')[0] ?? 'Acción del agente',
           descripcion: fila.descripcion ?? '',
           confianza: fila.confianza ?? 80,
-          accion: null, // Las acciones específicas se resolverán en fases posteriores
+          accion: null,
           timestamp: fila.created_at ? tiempoRelativo(fila.created_at) : 'sin fecha',
         }
       })
