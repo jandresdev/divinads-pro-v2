@@ -1,4 +1,5 @@
 // Página pública de precios — Server Component (no requiere autenticación)
+import BotonPlan from './BotonesPrecios'
 
 const PLANES = [
   {
@@ -113,16 +114,12 @@ export default function PaginaPrecios() {
               </ul>
 
               {/* Botón de llamada a la acción */}
-              <a
-                href={plan.precio === 299 ? 'mailto:ventas@divinads.com' : '/auth/registrarse'}
-                className={`block w-full text-center py-3 rounded-xl font-medium transition-all ${
-                  plan.destacado
-                    ? 'bg-primary text-white hover:bg-primary/90'
-                    : 'border border-border text-foreground hover:border-primary/30 hover:bg-background'
-                }`}
-              >
-                {plan.cta}
-              </a>
+              <BotonPlan
+                plan={plan.nombre.toLowerCase()}
+                precio={plan.precio}
+                cta={plan.cta}
+                destacado={plan.destacado}
+              />
             </div>
           ))}
         </div>
