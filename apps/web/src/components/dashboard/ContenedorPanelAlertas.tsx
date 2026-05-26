@@ -1,6 +1,6 @@
 // Server Component — resuelve alertas de anomalías desde Supabase
 // y las pasa al componente cliente PanelAlertas.
-// Fallback silencioso a datos demo ante cualquier error o tabla vacía.
+// Sin datos demo para usuarios autenticados — muestra estado vacío real.
 
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import PanelAlertas, { type Alerta } from './PanelAlertas'
@@ -8,54 +8,6 @@ import PanelAlertas, { type Alerta } from './PanelAlertas'
 // ─── Tipo auxiliar de severidad ───────────────────────────────────────────────
 
 type Severidad = 'critica' | 'alta' | 'media' | 'baja'
-
-// ─── Datos demo ───────────────────────────────────────────────────────────────
-
-// Se usan cuando Supabase no está disponible, no hay sesión activa o la tabla
-// de anomalías aún no contiene datos reales.
-const DEMO_ALERTAS: Alerta[] = [
-  {
-    id: 'a1',
-    tipo: 'roas_bajo',
-    severidad: 'critica',
-    titulo: 'ROAS cayó −22% en las últimas 24h',
-    campaña: 'Prospección - Lookalike 2%',
-    descripcion: 'El ROAS bajó de 4,8x a 3,7x. Posible fatiga de audiencia.',
-    tiempo: 'hace 2h',
-    revisada: false,
-  },
-  {
-    id: 'a2',
-    tipo: 'cpc_alto',
-    severidad: 'alta',
-    titulo: 'CPC aumentó +35% esta semana',
-    campaña: 'Remarketing - Visitantes 30d',
-    descripcion: 'El CPC subió de $1,20 a $1,62. Competencia alta en subasta.',
-    tiempo: 'hace 5h',
-    revisada: false,
-  },
-  {
-    id: 'a3',
-    tipo: 'frecuencia_alta',
-    severidad: 'media',
-    titulo: 'Frecuencia alta detectada',
-    campaña: 'Retargeting - Carrito Abandonado',
-    descripcion: 'Frecuencia promedio: 6,2x. Riesgo de fatiga de audiencia.',
-    tiempo: 'hace 1d',
-    revisada: false,
-  },
-  {
-    id: 'a4',
-    tipo: 'presupuesto_agotado',
-    severidad: 'alta',
-    titulo: 'Presupuesto diario agotado a las 2PM',
-    campaña: 'Conversión - DABA Catálogo',
-    descripcion:
-      'El presupuesto se consumió antes del fin del día. Considera aumentarlo.',
-    tiempo: 'hace 3d',
-    revisada: true,
-  },
-]
 
 // ─── Tipos internos de Supabase ───────────────────────────────────────────────
 
@@ -110,17 +62,17 @@ function tiempoRelativo(fechaISO: string): string {
 /**
  * Consulta la tabla `anomalies` en Supabase y devuelve las alertas activas
  * ordenadas por puntuación de severidad descendente.
- * Retorna DEMO_ALERTAS ante cualquier error, sesión inexistente o tabla vacía.
+ * Para usuarios autenticados retorna lista vacía si no hay anomalías (no datos demo).
  */
 async function obtenerAlertas(): Promise<Alerta[]> {
   try {
     const supabase = await crearClienteServidor()
 
-    // Sin sesión activa → datos demo (evita consultas sin contexto de tenant)
+    // Sin sesión activa → lista vacía (sin datos demo para evitar confusión)
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return DEMO_ALERTAS
+    if (!user) return []
 
     const { data: filas, error } = await supabase
       .from('anomalies')
@@ -131,8 +83,8 @@ async function obtenerAlertas(): Promise<Alerta[]> {
       .order('severidad_score', { ascending: false })
       .limit(10)
 
-    // Error de Supabase o respuesta vacía → datos demo
-    if (error || !filas || filas.length === 0) return DEMO_ALERTAS
+    // Error de Supabase o sin anomalías → lista vacía real
+    if (error || !filas || filas.length === 0) return []
 
     // Transformar filas al formato que espera PanelAlertas
     const alertas: Alerta[] = (filas as unknown as FilaAnomalia[])
@@ -153,11 +105,10 @@ async function obtenerAlertas(): Promise<Alerta[]> {
       })
       .filter((a): a is Alerta => a !== null)
 
-    // Si el mapeo no produjo ninguna alerta válida → datos demo
-    return alertas.length > 0 ? alertas : DEMO_ALERTAS
+    return alertas
   } catch {
-    // Cualquier excepción no esperada → datos demo, sin romper la UI
-    return DEMO_ALERTAS
+    // Cualquier excepción → lista vacía, sin romper la UI
+    return []
   }
 }
 
@@ -165,6 +116,7 @@ async function obtenerAlertas(): Promise<Alerta[]> {
 
 /**
  * Resuelve las alertas de anomalías y renderiza el panel cliente.
+ * Si no hay alertas, el componente muestra el estado vacío "Sin alertas activas".
  */
 export default async function ContenedorPanelAlertas() {
   const alertas = await obtenerAlertas()

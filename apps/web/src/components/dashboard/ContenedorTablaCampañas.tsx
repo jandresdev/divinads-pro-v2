@@ -1,81 +1,10 @@
 // Server Component — resuelve datos de campañas desde Supabase
 // y los pasa al componente cliente TablaCampañas.
-// Fallback silencioso a datos demo ante cualquier error.
+// Si el usuario está autenticado pero no tiene datos, muestra estado vacío (no datos demo).
 
 import { crearClienteServidor } from '@/lib/supabase/servidor'
 import TablaCampañas, { type DatoCampaña } from './TablaCampañas'
-
-// ─── Datos demo ───────────────────────────────────────────────────────────────
-
-// Se usan cuando no hay sesión activa o Supabase no devuelve datos válidos
-const DEMO_CAMPAÑAS: DatoCampaña[] = [
-  {
-    id: '1',
-    nombre: 'Prospección - Lookalike 2%',
-    tipo: 'Prospección',
-    estado: 'activa',
-    gasto: 12_450.30,
-    roas: 4.8,
-    ctr: 3.2,
-    conversiones: 312,
-    cpa: 39.90,
-  },
-  {
-    id: '2',
-    nombre: 'Remarketing - Visitantes 30d',
-    tipo: 'Remarketing',
-    estado: 'activa',
-    gasto: 8_932.15,
-    roas: 6.2,
-    ctr: 5.1,
-    conversiones: 248,
-    cpa: 36.02,
-  },
-  {
-    id: '3',
-    nombre: 'Retargeting - Carrito Abandonado',
-    tipo: 'Retargeting',
-    estado: 'activa',
-    gasto: 6_214.80,
-    roas: 8.4,
-    ctr: 7.3,
-    conversiones: 187,
-    cpa: 33.24,
-  },
-  {
-    id: '4',
-    nombre: 'Prospección - Intereses Fitness',
-    tipo: 'Prospección',
-    estado: 'pausada',
-    gasto: 5_890.25,
-    roas: 2.1,
-    ctr: 1.8,
-    conversiones: 143,
-    cpa: 41.19,
-  },
-  {
-    id: '5',
-    nombre: 'Conversión - DABA Catálogo',
-    tipo: 'Conversión',
-    estado: 'activa',
-    gasto: 3_241.70,
-    roas: 5.3,
-    ctr: 4.6,
-    conversiones: 98,
-    cpa: 33.08,
-  },
-  {
-    id: '6',
-    nombre: 'Remarketing - Compradores 90d',
-    tipo: 'Remarketing',
-    estado: 'activa',
-    gasto: 2_243.25,
-    roas: 9.1,
-    ctr: 6.8,
-    conversiones: 74,
-    cpa: 30.31,
-  },
-]
+import SinConexionMeta from '@/components/SinConexionMeta'
 
 // ─── Tipos internos de Supabase ───────────────────────────────────────────────
 
@@ -103,17 +32,18 @@ interface FilaCampaña {
 /**
  * Consulta Supabase para obtener las campañas y su métrica más reciente.
  * Para cada campaña se toma el registro de daily_metrics con la fecha más alta.
- * Retorna datos demo ante cualquier fallo o falta de sesión.
+ * Retorna null cuando hay sesión activa pero no hay datos reales disponibles.
+ * Solo retorna datos demo cuando NO hay sesión (usuario no autenticado).
  */
-async function obtenerCampañas(): Promise<DatoCampaña[]> {
+async function obtenerCampañas(): Promise<{ campañas: DatoCampaña[]; autenticado: boolean }> {
   try {
     const supabase = await crearClienteServidor()
 
-    // Sin sesión activa → datos demo para evitar consultas sin contexto de tenant
+    // Sin sesión activa → sin datos (la UI mostrará estado vacío apropiado)
     const {
       data: { user },
     } = await supabase.auth.getUser()
-    if (!user) return DEMO_CAMPAÑAS
+    if (!user) return { campañas: [], autenticado: false }
 
     // Consulta con join a daily_metrics — se toman todas las métricas y luego
     // se filtra la más reciente en memoria para máxima compatibilidad
@@ -136,8 +66,10 @@ async function obtenerCampañas(): Promise<DatoCampaña[]> {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    // Error de Supabase o respuesta vacía → datos demo
-    if (error || !filas || filas.length === 0) return DEMO_CAMPAÑAS
+    // Error de Supabase o sin campañas registradas → autenticado pero sin datos
+    if (error || !filas || filas.length === 0) {
+      return { campañas: [], autenticado: true }
+    }
 
     // Transformar filas al formato que espera TablaCampañas
     const campañas: DatoCampaña[] = (filas as unknown as FilaCampaña[])
@@ -173,11 +105,10 @@ async function obtenerCampañas(): Promise<DatoCampaña[]> {
       })
       .filter((c): c is DatoCampaña => c !== null)
 
-    // Si no se pudo construir ninguna campaña válida → datos demo
-    return campañas.length > 0 ? campañas : DEMO_CAMPAÑAS
+    return { campañas, autenticado: true }
   } catch {
-    // Cualquier excepción no esperada → datos demo, sin romper la UI
-    return DEMO_CAMPAÑAS
+    // Cualquier excepción no esperada → autenticado pero sin datos
+    return { campañas: [], autenticado: true }
   }
 }
 
@@ -185,9 +116,24 @@ async function obtenerCampañas(): Promise<DatoCampaña[]> {
 
 /**
  * Resuelve los datos de campañas y renderiza la tabla cliente.
+ * Si el usuario está autenticado pero no hay datos, muestra el estado de conexión.
  */
 export default async function ContenedorTablaCampañas() {
-  const campañas = await obtenerCampañas()
+  const { campañas, autenticado } = await obtenerCampañas()
+
+  // Sin autenticación → mostrar estado de conexión
+  if (!autenticado) {
+    return (
+      <SinConexionMeta mensaje="Conecta tu cuenta de Meta Ads para ver el rendimiento de tus campañas en tiempo real." />
+    )
+  }
+
+  // Autenticado pero sin campañas con datos → invitar a conectar o esperar sync
+  if (campañas.length === 0) {
+    return (
+      <SinConexionMeta mensaje="No hay datos de campañas disponibles aún. Conecta tu cuenta de Meta Ads o espera que se completen los primeros 15 minutos de sincronización." />
+    )
+  }
 
   return <TablaCampañas campañas={campañas} />
 }
