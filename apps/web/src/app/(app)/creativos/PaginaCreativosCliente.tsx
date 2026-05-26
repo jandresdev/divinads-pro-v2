@@ -1,66 +1,107 @@
 'use client'
 
-import { useState } from 'react'
-import { Image, Search, ExternalLink } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Search, ExternalLink, TrendingUp, Eye, MousePointerClick, Loader2, Image, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import TarjetaCreativo, {
-  type Creativo, type FormatoCreativo, type EstadoCreativo,
-  CONFIG_FORMATO, formatearNumeroK,
-} from './TarjetaCreativo'
+import SinConexionMeta from '@/components/SinConexionMeta'
 
-const DEMO_CREATIVOS: Creativo[] = [
-  { id: 'c1', nombre: 'Banner Oferta 50% OFF - Verano', formato: 'imagen', estado: 'activo', campañas: ['Remarketing - Visitantes 30d', 'Retargeting - Carrito'], ctr: 4.8, impresiones: 145_000, clics: 6_960, miniatura: '/placeholder-imagen.jpg', fechaCreacion: '2026-04-15' },
-  { id: 'c2', nombre: 'Video Historia de Marca 15s', formato: 'video', estado: 'activo', campañas: ['Prospección - Lookalike 2%'], ctr: 2.1, impresiones: 280_000, clics: 5_880, miniatura: '/placeholder-video.jpg', fechaCreacion: '2026-04-10' },
-  { id: 'c3', nombre: 'Carrusel Productos Destacados', formato: 'carrusel', estado: 'activo', campañas: ['Conversión - DABA Catálogo'], ctr: 6.3, impresiones: 92_000, clics: 5_796, miniatura: '/placeholder-carousel.jpg', fechaCreacion: '2026-03-28' },
-  { id: 'c4', nombre: 'Colección Premium Fitness', formato: 'coleccion', estado: 'activo', campañas: ['Prospección - Intereses Fitness'], ctr: 3.4, impresiones: 67_000, clics: 2_278, miniatura: '/placeholder-collection.jpg', fechaCreacion: '2026-03-20' },
-  { id: 'c5', nombre: 'Banner Verano 2025 (legacy)', formato: 'imagen', estado: 'pausado', campañas: [], ctr: 1.2, impresiones: 34_000, clics: 408, miniatura: '/placeholder-imagen.jpg', fechaCreacion: '2025-11-01' },
-  { id: 'c6', nombre: 'Video Testimonios Clientes 30s', formato: 'video', estado: 'activo', campañas: ['Remarketing - Compradores 90d'], ctr: 5.7, impresiones: 41_000, clics: 2_337, miniatura: '/placeholder-video.jpg', fechaCreacion: '2026-05-01' },
-]
+interface Creativo {
+  id: string
+  nombre: string
+  estado: 'activo' | 'pausado'
+  campañaNombre: string | null
+  campañaObjetivo: string | null
+  thumbnail: string | null
+  titulo: string | null
+  cuerpo: string | null
+  impresiones: number
+  clics: number
+  ctr: number
+  gasto: number
+}
+
+function formatearNumeroK(n: number): string {
+  return n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000
+    ? `${(n / 1_000).toFixed(0)}K`
+    : n.toString()
+}
 
 export default function PaginaCreativosCliente() {
+  const [creativos, setCreativos] = useState<Creativo[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState('')
+  const [sinConexion, setSinConexion] = useState(false)
   const [busqueda, setBusqueda] = useState('')
-  const [filtroFormato, setFiltroFormato] = useState<FormatoCreativo | 'todos'>('todos')
-  const [filtroEstado, setFiltroEstado] = useState<EstadoCreativo | 'todos'>('todos')
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'activo' | 'pausado'>('todos')
 
-  const creativosFiltrados = DEMO_CREATIVOS.filter(c => {
+  const cargar = useCallback(async () => {
+    setCargando(true)
+    setError('')
+    try {
+      const res = await fetch('/api/creativos')
+      const json = await res.json()
+
+      if (json.sinConexion) {
+        setSinConexion(true)
+      } else if (json.exito) {
+        setCreativos(json.datos ?? [])
+      } else {
+        setError(json.error ?? 'Error al cargar creativos')
+      }
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setCargando(false)
+    }
+  }, [])
+
+  useEffect(() => { cargar() }, [cargar])
+
+  if (!cargando && sinConexion) return <SinConexionMeta />
+
+  const filtrados = creativos.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase())
-    const coincideFormato = filtroFormato === 'todos' || c.formato === filtroFormato
     const coincideEstado = filtroEstado === 'todos' || c.estado === filtroEstado
-    return coincideBusqueda && coincideFormato && coincideEstado
+    return coincideBusqueda && coincideEstado
   })
 
-  const topCTR = [...DEMO_CREATIVOS].filter(c => c.estado === 'activo').sort((a, b) => b.ctr - a.ctr)[0]
+  const topCTR = [...creativos].filter(c => c.estado === 'activo').sort((a, b) => b.ctr - a.ctr)[0]
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Creativos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Anuncios y assets visuales de tus campañas</p>
+          <p className="text-muted-foreground text-sm mt-1">Anuncios activos y pausados de tu cuenta Meta Ads</p>
         </div>
-        <a
-          href="https://adsmanager.facebook.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ExternalLink className="w-4 h-4" />Administrar en Meta
-        </a>
+        <div className="flex gap-2">
+          <button onClick={cargar} className="p-2.5 border border-border rounded-xl text-muted-foreground hover:text-foreground transition-colors">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ExternalLink className="w-4 h-4" />Administrar en Meta
+          </a>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total creativos',     valor: DEMO_CREATIVOS.length.toString() },
-          { label: 'Activos',             valor: DEMO_CREATIVOS.filter(c => c.estado === 'activo').length.toString() },
-          { label: 'CTR más alto',        valor: topCTR ? `${topCTR.ctr.toFixed(1).replace('.', ',')}%` : '—' },
-          { label: 'Impresiones totales', valor: formatearNumeroK(DEMO_CREATIVOS.reduce((acc, c) => acc + c.impresiones, 0)) },
-        ].map((s, i) => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{s.label}</p>
-            <p className="text-xl font-bold text-foreground">{s.valor}</p>
-          </div>
-        ))}
-      </div>
+      {!cargando && creativos.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Total anuncios',      valor: creativos.length.toString() },
+            { label: 'Activos',             valor: creativos.filter(c => c.estado === 'activo').length.toString() },
+            { label: 'CTR más alto',        valor: topCTR ? `${topCTR.ctr.toFixed(1).replace('.', ',')}%` : '—' },
+            { label: 'Impresiones totales', valor: formatearNumeroK(creativos.reduce((acc, c) => acc + c.impresiones, 0)) },
+          ].map((s, i) => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-1">{s.label}</p>
+              <p className="text-xl font-bold text-foreground">{s.valor}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -69,50 +110,108 @@ export default function PaginaCreativosCliente() {
             type="search"
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            placeholder="Buscar creativo por nombre…"
+            placeholder="Buscar por nombre de anuncio…"
             className="w-full pl-9 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
           />
         </div>
         <div className="flex items-center gap-1 p-1 bg-card border border-border rounded-xl" role="group">
-          {(['todos', 'imagen', 'video', 'carrusel', 'coleccion'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFiltroFormato(f)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', filtroFormato === f ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}
-            >
-              {f === 'todos' ? 'Todos' : CONFIG_FORMATO[f].label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1 p-1 bg-card border border-border rounded-xl" role="group">
           {(['todos', 'activo', 'pausado'] as const).map(e => (
-            <button
-              key={e}
-              onClick={() => setFiltroEstado(e)}
-              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors', filtroEstado === e ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground')}
-            >
+            <button key={e} onClick={() => setFiltroEstado(e)}
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                filtroEstado === e ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
+              )}>
               {e === 'todos' ? 'Todos' : e === 'activo' ? 'Activos' : 'Pausados'}
             </button>
           ))}
         </div>
       </div>
 
-      {creativosFiltrados.length === 0 ? (
+      {cargando ? (
+        <div className="bg-card border border-border rounded-xl p-16 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-sm">Cargando anuncios desde Meta Ads…</p>
+        </div>
+      ) : error ? (
+        <div className="bg-card border border-border rounded-xl p-16 text-center">
+          <p className="text-destructive text-sm">{error}</p>
+          <button onClick={cargar} className="mt-4 text-xs text-primary hover:underline">Reintentar</button>
+        </div>
+      ) : filtrados.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-16 text-center">
           <Image className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">No se encontraron creativos</p>
+          <p className="text-muted-foreground text-sm">
+            {creativos.length === 0
+              ? 'No se encontraron anuncios activos o pausados en tu cuenta'
+              : 'No se encontraron anuncios con los filtros seleccionados'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {creativosFiltrados.map(c => (
-            <TarjetaCreativo key={c.id} creativo={c} />
+          {filtrados.map(c => (
+            <div key={c.id} className="bg-card border border-border rounded-xl overflow-hidden hover:border-border/80 transition-colors">
+              {/* Miniatura / placeholder */}
+              <div className="relative h-40 bg-muted/20 flex items-center justify-center overflow-hidden">
+                {c.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.thumbnail} alt={c.nombre} className="w-full h-full object-cover" />
+                ) : (
+                  <Image className="w-12 h-12 opacity-20 text-muted-foreground" />
+                )}
+                <div className="absolute top-3 left-3">
+                  <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full bg-background/80 backdrop-blur-sm border border-border">
+                    <span className={cn('w-1.5 h-1.5 rounded-full', c.estado === 'activo' ? 'bg-success' : 'bg-yellow-400')} />
+                    <span className={c.estado === 'activo' ? 'text-success' : 'text-yellow-400'}>
+                      {c.estado === 'activo' ? 'Activo' : 'Pausado'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground truncate">{c.nombre}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {c.campañaNombre ?? 'Sin campaña asignada'}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <Eye className="w-3 h-3 text-muted-foreground mx-auto mb-0.5" />
+                    <p className="text-sm font-bold text-foreground">{formatearNumeroK(c.impresiones)}</p>
+                    <p className="text-[10px] text-muted-foreground">Impresiones</p>
+                  </div>
+                  <div className="text-center">
+                    <MousePointerClick className="w-3 h-3 text-muted-foreground mx-auto mb-0.5" />
+                    <p className="text-sm font-bold text-foreground">{formatearNumeroK(c.clics)}</p>
+                    <p className="text-[10px] text-muted-foreground">Clics</p>
+                  </div>
+                  <div className="text-center">
+                    <TrendingUp className="w-3 h-3 text-muted-foreground mx-auto mb-0.5" />
+                    <p className={cn('text-sm font-bold',
+                      c.ctr >= 4 ? 'text-success' : c.ctr >= 2 ? 'text-yellow-400' : c.ctr > 0 ? 'text-red-400' : 'text-muted-foreground'
+                    )}>
+                      {c.ctr > 0 ? `${c.ctr.toFixed(1).replace('.', ',')}%` : '—'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">CTR</p>
+                  </div>
+                </div>
+
+                <a href="https://adsmanager.facebook.com" target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg py-2 transition-colors w-full">
+                  <ExternalLink className="w-3.5 h-3.5" />Ver en Meta
+                </a>
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground text-center">
-        Los creativos se sincronizan con tu cuenta Meta Ads cada 24 horas.
-      </p>
+      {!cargando && creativos.length > 0 && (
+        <p className="text-xs text-muted-foreground text-center">
+          {creativos.length} anuncios obtenidos desde Meta Ads API · datos de los últimos 30 días
+        </p>
+      )}
     </div>
   )
 }

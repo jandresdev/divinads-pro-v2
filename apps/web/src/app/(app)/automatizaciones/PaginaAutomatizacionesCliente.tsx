@@ -5,44 +5,6 @@ import { Bot, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TarjetaAccion, { type AccionAgente } from './TarjetaAccion'
 
-const DEMO_ACCIONES: AccionAgente[] = [
-  {
-    id: 'ac1', tipo_accion: 'pausar_campaña',
-    descripcion: 'ROAS cayó 32% bajo el baseline de 7 días. Se detectó fatiga de audiencia severa. Se pausó la campaña para evitar pérdida de presupuesto adicional.',
-    confianza: 91, estado: 'completado', aprobado_por: 'agente_autonomo',
-    resultado: { exitoso: true, mensaje: 'Campaña pausada exitosamente en Meta Ads.' },
-    campaign_id: '1',
-    created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
-    campaigns: { nombre: 'Prospección - Intereses Fitness' },
-  },
-  {
-    id: 'ac2', tipo_accion: 'reducir_presupuesto',
-    descripcion: 'CPC aumentó 28% sobre el promedio de 7 días. Se redujo el presupuesto diario del AdSet en 20% para controlar el costo.',
-    confianza: 83, estado: 'completado', aprobado_por: 'agente_autonomo',
-    resultado: { exitoso: true, presupuestoAnterior: 150, presupuestoNuevo: 120 },
-    campaign_id: '2',
-    created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
-    campaigns: { nombre: 'Remarketing - Visitantes 30d' },
-  },
-  {
-    id: 'ac3', tipo_accion: 'solo_monitorear',
-    descripcion: 'Frecuencia alta detectada (7,2x en 7 días). Se recomienda refrescar creatividades pero el impacto estimado es <$100, quedando en observación.',
-    confianza: 76, estado: 'completado', aprobado_por: 'agente_autonomo',
-    resultado: { exitoso: true, mensaje: 'Acción de solo monitoreo registrada.' },
-    campaign_id: '3',
-    created_at: new Date(Date.now() - 8 * 3_600_000).toISOString(),
-    campaigns: { nombre: 'Retargeting - Carrito Abandonado' },
-  },
-  {
-    id: 'ac4', tipo_accion: 'aumentar_presupuesto',
-    descripcion: 'ROAS 8,4x supera el baseline histórico en 2x. Se propone aumentar presupuesto 30% para capitalizar el momento de alta performance.',
-    confianza: 88, estado: 'pendiente', aprobado_por: null,
-    resultado: null, campaign_id: '3',
-    created_at: new Date(Date.now() - 30 * 60_000).toISOString(),
-    campaigns: { nombre: 'Retargeting - Carrito Abandonado' },
-  },
-]
-
 export default function PaginaAutomatizacionesCliente() {
   const [acciones, setAcciones] = useState<AccionAgente[]>([])
   const [cargando, setCargando] = useState(true)
@@ -53,9 +15,9 @@ export default function PaginaAutomatizacionesCliente() {
     try {
       const res = await fetch('/api/agente/acciones')
       const json = await res.json()
-      setAcciones(json.exito && json.datos?.length > 0 ? json.datos : DEMO_ACCIONES)
+      setAcciones(json.exito ? (json.datos ?? []) : [])
     } catch {
-      setAcciones(DEMO_ACCIONES)
+      setAcciones([])
     } finally {
       setCargando(false)
     }
@@ -148,8 +110,14 @@ export default function PaginaAutomatizacionesCliente() {
       ) : accionesFiltradas.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-16 text-center">
           <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-foreground">Sin acciones</h2>
-          <p className="text-muted-foreground text-sm mt-1">El agente no ha registrado acciones con este filtro</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            {acciones.length === 0 ? 'El agente está analizando tus campañas' : 'Sin acciones'}
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            {acciones.length === 0
+              ? 'Las acciones automáticas aparecerán aquí cuando el agente detecte oportunidades de optimización.'
+              : 'No hay acciones con el filtro seleccionado'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

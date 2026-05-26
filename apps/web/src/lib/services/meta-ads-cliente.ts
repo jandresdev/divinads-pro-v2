@@ -254,6 +254,117 @@ export class ClienteMetaAds {
     console.info(`[meta-ads-cliente] Presupuesto de AdSet actualizado en Meta: adSetId=${adSetId} presupuestoCentavos=${presupuestoCentavos}`)
     return data.success
   }
+
+  // -------------------------------------------------------------------------
+  // Audiencias personalizadas de la cuenta publicitaria
+  // -------------------------------------------------------------------------
+  async obtenerAudiencias(): Promise<MetaAudiencia[]> {
+    const { data } = await this.http.get<MetaRespuestaPaginada<MetaAudiencia>>(
+      `/${this.adAccountId}/customaudiences`,
+      {
+        params: {
+          fields: 'id,name,subtype,approximate_count,time_updated,description,audience_type',
+          limit: 100,
+        },
+      },
+    )
+    return data.data ?? []
+  }
+
+  // -------------------------------------------------------------------------
+  // Anuncios activos/pausados con info de creativos e insights (últimos 30d)
+  // -------------------------------------------------------------------------
+  async obtenerAnunciosConInsights(): Promise<{ ads: MetaAnuncio[]; insights: MetaInsightAnuncio[] }> {
+    const [adsRes, insightsRes] = await Promise.all([
+      this.http.get<MetaRespuestaPaginada<MetaAnuncio>>(
+        `/${this.adAccountId}/ads`,
+        {
+          params: {
+            fields: 'id,name,status,creative{id,thumbnail_url,title,body},campaign{id,name,objective}',
+            limit: 50,
+            filtering: JSON.stringify([
+              { field: 'effective_status', operator: 'IN', value: ['ACTIVE', 'PAUSED'] },
+            ]),
+          },
+        },
+      ),
+      this.http.get<MetaRespuestaPaginada<MetaInsightAnuncio>>(
+        `/${this.adAccountId}/insights`,
+        {
+          params: {
+            level: 'ad',
+            fields: 'ad_id,ad_name,impressions,clicks,ctr,spend',
+            date_preset: 'last_30d',
+            limit: 200,
+          },
+        },
+      ),
+    ])
+
+    return {
+      ads: adsRes.data.data ?? [],
+      insights: insightsRes.data.data ?? [],
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Cuentas publicitarias accesibles con el access_token actual
+  // -------------------------------------------------------------------------
+  async obtenerCuentasPublicitarias(): Promise<MetaCuentaPublicitaria[]> {
+    const { data } = await this.http.get<MetaRespuestaPaginada<MetaCuentaPublicitaria>>(
+      '/me/adaccounts',
+      {
+        params: {
+          fields: 'id,name,account_status,currency',
+          limit: 50,
+        },
+      },
+    )
+    return data.data ?? []
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tipos adicionales de Meta
+// ---------------------------------------------------------------------------
+
+export interface MetaAudiencia {
+  id: string
+  name: string
+  subtype: string
+  approximate_count: number
+  time_updated: number
+  description?: string
+  audience_type?: string
+}
+
+export interface MetaAnuncio {
+  id: string
+  name: string
+  status: 'ACTIVE' | 'PAUSED' | 'DELETED' | 'ARCHIVED'
+  creative?: {
+    id: string
+    thumbnail_url?: string
+    title?: string
+    body?: string
+  }
+  campaign?: { id: string; name: string; objective: string }
+}
+
+export interface MetaInsightAnuncio {
+  ad_id: string
+  ad_name: string
+  impressions: string
+  clicks: string
+  ctr: string
+  spend: string
+}
+
+export interface MetaCuentaPublicitaria {
+  id: string
+  name: string
+  account_status: number
+  currency: string
 }
 
 // ---------------------------------------------------------------------------

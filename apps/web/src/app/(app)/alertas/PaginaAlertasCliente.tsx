@@ -1,20 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, CheckCircle2, Filter, Bell } from 'lucide-react'
+import { RefreshCw, CheckCircle2, Filter, Bell, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TarjetaAlerta, { type Anomalia } from './TarjetaAlerta'
 
 type FiltroSeveridad = 'todas' | 'critica' | 'alta' | 'media' | 'baja'
 type FiltroEstado = 'todas' | 'activa' | 'revisada'
-
-const DEMO_ALERTAS: Anomalia[] = [
-  { id: 'a1', tipo: 'roas_bajo', titulo: 'ROAS cayó -32% en las últimas 24h', descripcion: 'El ROAS de "Prospección - Lookalike 2%" bajó de 4,8x a 3,2x (promedio 7d). Posible fatiga de audiencia.', severidad_score: 75, activa: true, revisada: false, created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(), campaigns: { nombre: 'Prospección - Lookalike 2%', tipo_campaña: 'Prospección' } },
-  { id: 'a2', tipo: 'cpc_alto', titulo: 'CPC aumentó +28% vs promedio de 7 días', descripcion: 'El costo por click de "Remarketing - Visitantes 30d" subió de $0,85 a $1,09. Alta competencia en la subasta.', severidad_score: 55, activa: true, revisada: false, created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(), campaigns: { nombre: 'Remarketing - Visitantes 30d', tipo_campaña: 'Remarketing' } },
-  { id: 'a3', tipo: 'frecuencia_alta', titulo: 'Frecuencia crítica: 7,2x promedio 7 días', descripcion: 'La audiencia de "Retargeting - Carrito" ha visto los anuncios 7,2 veces. Riesgo crítico de fatiga.', severidad_score: 90, activa: true, revisada: false, created_at: new Date(Date.now() - 1 * 3_600_000).toISOString(), campaigns: { nombre: 'Retargeting - Carrito Abandonado', tipo_campaña: 'Retargeting' } },
-  { id: 'a4', tipo: 'presupuesto_agotado', titulo: 'Presupuesto casi agotado: 97% consumido', descripcion: '"Prospección - Intereses Fitness" ha consumido el 97% del presupuesto diario. Los anuncios podrían dejar de entregarse.', severidad_score: 60, activa: true, revisada: false, created_at: new Date(Date.now() - 30 * 60_000).toISOString(), campaigns: { nombre: 'Prospección - Intereses Fitness', tipo_campaña: 'Prospección' } },
-  { id: 'a5', tipo: 'caida_conversiones', titulo: 'Conversiones cayeron -38% esta semana', descripcion: 'Las conversiones de "Conversión - DABA Catálogo" bajaron significativamente. Revisar calidad del tráfico.', severidad_score: 75, activa: false, revisada: true, created_at: new Date(Date.now() - 24 * 3_600_000).toISOString(), campaigns: { nombre: 'Conversión - DABA Catálogo', tipo_campaña: 'Conversión' } },
-]
 
 export default function PaginaAlertasCliente() {
   const [alertas, setAlertas] = useState<Anomalia[]>([])
@@ -27,9 +19,9 @@ export default function PaginaAlertasCliente() {
     try {
       const res = await fetch('/api/anomalias')
       const json = await res.json()
-      setAlertas(json.exito && json.datos?.length > 0 ? json.datos : DEMO_ALERTAS)
+      setAlertas(json.exito ? (json.datos ?? []) : [])
     } catch {
-      setAlertas(DEMO_ALERTAS)
+      setAlertas([])
     } finally {
       setCargando(false)
     }
@@ -109,10 +101,12 @@ export default function PaginaAlertasCliente() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Filter className="w-3.5 h-3.5" />
-          {alertasFiltradas.length} de {alertas.length} alertas
-        </div>
+        {!cargando && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Filter className="w-3.5 h-3.5" />
+            {alertasFiltradas.length} de {alertas.length} alertas
+          </div>
+        )}
       </div>
 
       {cargando ? (
@@ -122,8 +116,14 @@ export default function PaginaAlertasCliente() {
       ) : alertasFiltradas.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-16 text-center">
           <CheckCircle2 className="w-10 h-10 text-success mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-foreground">Todo bajo control</h2>
-          <p className="text-muted-foreground text-sm mt-1">No hay alertas con los filtros seleccionados</p>
+          <h2 className="text-lg font-semibold text-foreground">
+            {alertas.length === 0 ? 'El agente está monitoreando tus campañas' : 'Todo bajo control'}
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            {alertas.length === 0
+              ? 'No se han detectado anomalías. Las alertas aparecerán aquí cuando el agente identifique problemas.'
+              : 'No hay alertas con los filtros seleccionados'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

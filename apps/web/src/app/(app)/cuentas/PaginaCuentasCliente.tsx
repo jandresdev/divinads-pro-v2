@@ -7,6 +7,7 @@ import {
   ExternalLink, BarChart3, Megaphone, Wallet,
 } from 'lucide-react'
 import { formatearMoneda } from '@/lib/utils'
+import SinConexionMeta from '@/components/SinConexionMeta'
 
 interface CuentaMeta {
   id: string
@@ -22,24 +23,11 @@ interface EstadisticasCuenta {
   roasPromedio: number
 }
 
-const DEMO_CUENTA: CuentaMeta = {
-  id: 'demo',
-  ad_account_id: 'act_123456789',
-  configurada: true,
-  configurada_desde: new Date(Date.now() - 15 * 24 * 3_600_000).toISOString(),
-  token_expiry: null,
-}
-
-const DEMO_STATS: EstadisticasCuenta = {
-  campanias: 8,
-  gastoMes: 38_972.45,
-  roasPromedio: 4.8,
-}
-
 export default function PaginaCuentasCliente() {
   const [cuenta, setCuenta] = useState<CuentaMeta | null>(null)
   const [stats, setStats] = useState<EstadisticasCuenta | null>(null)
   const [cargando, setCargando] = useState(true)
+  const [sinConexion, setSinConexion] = useState(false)
 
   useEffect(() => {
     async function cargar() {
@@ -60,23 +48,22 @@ export default function PaginaCuentasCliente() {
             configurada_desde: jsonCuenta.datos.configuradaDesde,
             token_expiry: jsonCuenta.datos.tokenExpiry,
           })
-        } else {
-          setCuenta(DEMO_CUENTA)
-        }
 
-        if (jsonMetricas.exito && jsonMetricas.datos) {
-          const d = jsonMetricas.datos
-          setStats({
-            campanias: 0,
-            gastoMes: d.gastoTotal ?? DEMO_STATS.gastoMes,
-            roasPromedio: d.roasPromedio ?? DEMO_STATS.roasPromedio,
-          })
+          if (jsonMetricas.exito && jsonMetricas.datos) {
+            const d = jsonMetricas.datos
+            setStats({
+              campanias: d.totalCampanias ?? 0,
+              gastoMes: d.gastoTotal ?? 0,
+              roasPromedio: d.roasPromedio ?? 0,
+            })
+          } else {
+            setStats({ campanias: 0, gastoMes: 0, roasPromedio: 0 })
+          }
         } else {
-          setStats(DEMO_STATS)
+          setSinConexion(true)
         }
       } catch {
-        setCuenta(DEMO_CUENTA)
-        setStats(DEMO_STATS)
+        setSinConexion(true)
       } finally {
         setCargando(false)
       }
@@ -96,7 +83,7 @@ export default function PaginaCuentasCliente() {
           className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Conectar cuenta
+          {sinConexion ? 'Conectar cuenta' : 'Reconfigurar'}
         </Link>
       </div>
 
@@ -107,6 +94,8 @@ export default function PaginaCuentasCliente() {
             {[1, 2, 3].map(i => <div key={i} className="bg-card border border-border rounded-xl h-24 animate-pulse" />)}
           </div>
         </div>
+      ) : sinConexion ? (
+        <SinConexionMeta mensaje="Conecta tu cuenta de Meta Ads para ver el estado de tus cuentas publicitarias." />
       ) : cuenta ? (
         <div className="space-y-6">
           <div className="bg-card border border-border rounded-xl p-6">
@@ -120,15 +109,9 @@ export default function PaginaCuentasCliente() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-semibold text-foreground">Meta Ads</h2>
-                    {cuenta.configurada ? (
-                      <span className="flex items-center gap-1 text-xs font-medium text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" />Conectada
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted/20 border border-border px-2 py-0.5 rounded-full">
-                        <AlertCircle className="w-3 h-3" />Desconectada
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 text-xs font-medium text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 className="w-3 h-3" />Conectada
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 font-mono">{cuenta.ad_account_id}</p>
                   {cuenta.configurada_desde && (
@@ -178,7 +161,7 @@ export default function PaginaCuentasCliente() {
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">Campañas activas</p>
                 </div>
-                <p className="text-3xl font-bold text-foreground">{DEMO_STATS.campanias}</p>
+                <p className="text-3xl font-bold text-foreground">{stats.campanias}</p>
                 <Link href="/campanias" className="text-xs text-primary hover:underline mt-1 inline-block">
                   Ver campañas →
                 </Link>
@@ -190,7 +173,9 @@ export default function PaginaCuentasCliente() {
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">Gasto este mes</p>
                 </div>
-                <p className="text-3xl font-bold text-foreground">{formatearMoneda(stats.gastoMes)}</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {stats.gastoMes > 0 ? formatearMoneda(stats.gastoMes) : '—'}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Últimos 30 días</p>
               </div>
               <div className="bg-card border border-border rounded-xl p-5">
@@ -201,7 +186,7 @@ export default function PaginaCuentasCliente() {
                   <p className="text-sm font-medium text-muted-foreground">ROAS promedio</p>
                 </div>
                 <p className="text-3xl font-bold text-foreground">
-                  {stats.roasPromedio.toFixed(1).replace('.', ',')}x
+                  {stats.roasPromedio > 0 ? `${stats.roasPromedio.toFixed(1).replace('.', ',')}x` : '—'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Últimos 30 días</p>
               </div>
@@ -219,21 +204,7 @@ export default function PaginaCuentasCliente() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="bg-card border border-border rounded-xl p-16 text-center">
-          <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-foreground">Sin cuentas conectadas</h2>
-          <p className="text-muted-foreground text-sm mt-1 mb-6">
-            Conecta tu cuenta de Meta Ads para comenzar a monitorear tus campañas
-          </p>
-          <Link
-            href="/configuracion/meta"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />Conectar Meta Ads
-          </Link>
-        </div>
-      )}
+      ) : null}
     </div>
   )
 }
