@@ -20,14 +20,25 @@ export default function PaginaConectarMeta() {
   const [accessToken, setAccessToken] = useState('')
   const [adAccountId, setAdAccountId] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [error, setError] = useState(
-    errorOAuth === 'oauth_cancelado' ? 'Conectar con Meta fue cancelado.'
-    : errorOAuth === 'sesion_expirada' ? 'La sesión expiró. Intenta de nuevo.'
-    : errorOAuth === 'sin_cuentas' ? 'No se encontraron cuentas publicitarias en tu perfil de Meta.'
-    : errorOAuth === 'token_invalido' ? 'Error al obtener el token de Meta. Intenta de nuevo.'
-    : errorOAuth === 'oauth_error' ? 'Error durante la autenticación con Meta. Intenta de nuevo.'
-    : ''
-  )
+  // Detalles de diagnóstico del error de OAuth (vienen como query params)
+  const metaErrorCode = searchParams.get('meta_code')
+  const metaErrorMsg = searchParams.get('meta_msg')
+  const redirectUriUsado = searchParams.get('redirect_uri')
+
+  const [error, setError] = useState(() => {
+    if (errorOAuth === 'oauth_cancelado') return 'Conectar con Meta fue cancelado.'
+    if (errorOAuth === 'sesion_expirada') return 'La sesión expiró. Intenta de nuevo desde el botón de conexión.'
+    if (errorOAuth === 'sin_cuentas') return 'No se encontraron cuentas publicitarias en tu perfil de Meta.'
+    if (errorOAuth === 'config_faltante') return 'META_APP_ID o META_APP_SECRET no están configurados en las variables de entorno del servidor.'
+    if (errorOAuth === 'token_invalido') {
+      if (metaErrorCode === '191') return `Meta rechazó el intercambio: la redirect_uri no está registrada en tu app de Meta. URI usada: ${redirectUriUsado ?? '(desconocida)'}`
+      if (metaErrorCode === '1') return 'Meta rechazó el intercambio: client_secret inválido. Verifica META_APP_SECRET en las variables de entorno de Vercel.'
+      if (metaErrorMsg) return `Meta rechazó el intercambio (código ${metaErrorCode}): ${metaErrorMsg}`
+      return 'Error al obtener el token de Meta. Revisa los logs del servidor para más detalles.'
+    }
+    if (errorOAuth === 'oauth_error') return 'Error inesperado durante la autenticación con Meta. Intenta de nuevo.'
+    return ''
+  })
   const [exitoManual, setExitoManual] = useState(false)
   const [campañasEncontradas, setCampañasEncontradas] = useState(0)
   const [estado, setEstado] = useState<EstadoConexion | null>(null)
@@ -38,6 +49,9 @@ export default function PaginaConectarMeta() {
   // Estado de sincronización manual
   const [sincronizando, setSincronizando] = useState(false)
   const [resultadoSync, setResultadoSync] = useState<{ exitoso: boolean; mensaje: string } | null>(null)
+  // Diagnóstico de OAuth
+  const [diagnostico, setDiagnostico] = useState<Record<string, string | boolean> | null>(null)
+  const [cargandoDiag, setCargandoDiag] = useState(false)
   const oauthDisponible = process.env.NEXT_PUBLIC_META_OAUTH_ENABLED === 'true'
 
   useEffect(() => {
@@ -83,6 +97,20 @@ export default function PaginaConectarMeta() {
       setError('Error de conexión. Intenta de nuevo.')
     } finally {
       setEnviando(false)
+    }
+  }
+
+  // Cargar diagnóstico de configuración OAuth
+  async function cargarDiagnostico() {
+    setCargandoDiag(true)
+    try {
+      const res = await fetch('/api/auth/meta/diagnostico')
+      const json = await res.json()
+      if (json.exito) setDiagnostico(json.diagnostico)
+    } catch {
+      setDiagnostico({ error: 'No se pudo cargar el diagnóstico' })
+    } finally {
+      setCargandoDiag(false)
     }
   }
 
@@ -200,11 +228,63 @@ export default function PaginaConectarMeta() {
         </div>
       )}
 
-      {/* Error de OAuth */}
+      {/* Error de OAuth con diagnóstico detallado */}
       {error && !conectadoExitosamente && (
-        <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+
+          {/* Guía de solución para error de redirect_uri */}
+          {errorOAuth === 'token_invalido' && (
+            <div className="p-3 bg-card border border-border rounded-lg text-xs text-muted-foreground space-y-3">
+              <p className="font-semibold text-foreground">¿Cómo resolver este error?</p>
+              <ol className="list-decimal list-inside space-y-1.5">
+                <li>Ve a <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">developers.facebook.com/apps</a> → selecciona tu app</li>
+                <li>Menú lateral: <strong className="text-foreground">Facebook Login → Configuración</strong></li>
+                <li>En <strong className="text-foreground">"URI de redireccionamiento de OAuth válidos"</strong>, agrega exactamente:
+                  {redirectUriUsado && (
+                    <code className="mt-1 block bg-background px-2 py-1.5 rounded font-mono break-all text-foreground">
+                      {redirectUriUsado}
+                    </code>
+                  )}
+                </li>
+                <li>En Vercel → Settings → Env Vars, verifica: <code className="bg-background px-1 rounded">META_APP_ID</code>, <code className="bg-background px-1 rounded">META_APP_SECRET</code>, <code className="bg-background px-1 rounded">NEXT_PUBLIC_APP_URL</code></li>
+              </ol>
+
+              {/* Botón para ver diagnóstico en vivo */}
+              <div>
+                <button
+                  onClick={cargarDiagnostico}
+                  disabled={cargandoDiag}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                >
+                  {cargandoDiag ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  {cargandoDiag ? 'Cargando…' : 'Ver configuración actual del servidor'}
+                </button>
+                {diagnostico && (
+                  <div className="mt-2 p-2 bg-background rounded-lg font-mono text-xs space-y-1 border border-border">
+                    <p><span className={diagnostico.META_APP_ID_configurado ? 'text-success' : 'text-destructive'}>● META_APP_ID: {diagnostico.META_APP_ID_configurado ? '✓ configurado' : '✗ NO configurado'}</span></p>
+                    <p><span className={diagnostico.META_APP_SECRET_configurado ? 'text-success' : 'text-destructive'}>● META_APP_SECRET: {diagnostico.META_APP_SECRET_configurado ? '✓ configurado' : '✗ NO configurado'}</span></p>
+                    <p>● NEXT_PUBLIC_APP_URL: <span className="text-foreground">{String(diagnostico.NEXT_PUBLIC_APP_URL)}</span></p>
+                    <p className="pt-1 text-foreground font-semibold">URI que debes registrar en Meta:</p>
+                    <p className="break-all text-primary">{String(diagnostico.callbackUrl)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {errorOAuth === 'config_faltante' && (
+            <div className="p-3 bg-card border border-border rounded-lg text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">Variables de entorno faltantes en Vercel:</p>
+              <p>Ve a Vercel → Tu proyecto → Settings → Environment Variables y agrega:</p>
+              <code className="block bg-background px-2 py-1 rounded font-mono mt-1">META_APP_ID=tu-app-id</code>
+              <code className="block bg-background px-2 py-1 rounded font-mono">META_APP_SECRET=tu-app-secret</code>
+              <code className="block bg-background px-2 py-1 rounded font-mono">NEXT_PUBLIC_APP_URL=https://tu-dominio.vercel.app</code>
+            </div>
+          )}
         </div>
       )}
 
