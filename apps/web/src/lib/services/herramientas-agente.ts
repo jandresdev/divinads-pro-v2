@@ -45,8 +45,19 @@ export async function obtenerMetricasCampaña(
     return 'No se encontraron métricas para esta campaña en el período solicitado.'
   }
 
+  interface FilaMetricaHerr {
+    fecha: string | null
+    roas: number | null
+    gasto_centavos: number | null
+    ctr: number | null
+    cpc: number | null
+    conversiones: number | null
+    cpa: number | null
+    frecuencia: number | null
+  }
+
   // Convertir centavos a USD con 2 decimales para legibilidad del agente
-  const resumen = data.map((m) => ({
+  const resumen = (data as FilaMetricaHerr[]).map((m: FilaMetricaHerr) => ({
     fecha: m.fecha,
     roas: m.roas?.toFixed(2) ?? '0,00',
     gasto_usd: ((m.gasto_centavos ?? 0) / 100).toFixed(2),

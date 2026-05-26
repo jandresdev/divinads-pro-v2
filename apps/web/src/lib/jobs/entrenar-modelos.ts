@@ -43,7 +43,7 @@ async function obtenerHistoricoROAS(tenantId: string, campaignId: string): Promi
   }
 
   // Filtrar filas con ROAS nulo o cero (días sin datos reales)
-  return data.map(m => m.roas ?? 0).filter(r => r > 0)
+  return (data as Array<{ roas: number | null }>).map(m => m.roas ?? 0).filter((r: number) => r > 0)
 }
 
 // ---------------------------------------------------------------------------

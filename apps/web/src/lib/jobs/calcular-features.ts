@@ -37,6 +37,26 @@ interface BenchmarkCampaña {
   cpa: number
 }
 
+// Fila raw de daily_metrics devuelta por Supabase
+interface FilaMetricaRaw {
+  fecha: string | null
+  roas: number | null
+  gasto_centavos: number | null
+  ctr: number | null
+  cpc: number | null
+  conversiones: number | null
+  cpa: number | null
+  frecuencia: number | null
+  alcance: number | null
+}
+
+// Fila raw de campaigns devuelta por Supabase
+interface FilaCampañaRaw {
+  id: string
+  tenant_id: string
+  nombre: string | null
+}
+
 // ---------------------------------------------------------------------------
 // Helpers de acceso a datos
 // ---------------------------------------------------------------------------
@@ -70,8 +90,8 @@ async function obtenerMetricasCampaña(
   }
 
   // Convertir centavos a unidades monetarias para cálculos internos
-  return data.map(m => ({
-    fecha:        m.fecha,
+  return (data as FilaMetricaRaw[]).map((m: FilaMetricaRaw) => ({
+    fecha:        m.fecha           ?? '',
     roas:         m.roas            ?? 0,
     gasto:       (m.gasto_centavos  ?? 0) / 100,
     ctr:          m.ctr             ?? 0,
@@ -222,11 +242,14 @@ export async function jobCalcularFeatures(): Promise<void> {
   }
 
   // Agrupar campañas por tenant para procesar de forma conjunta
-  const campañasPorTenant = campañas.reduce((acc, c) => {
-    if (!acc[c.tenant_id]) acc[c.tenant_id] = []
-    acc[c.tenant_id].push(c)
-    return acc
-  }, {} as Record<string, typeof campañas>)
+  const campañasPorTenant = (campañas as FilaCampañaRaw[]).reduce(
+    (acc: Record<string, FilaCampañaRaw[]>, c: FilaCampañaRaw) => {
+      if (!acc[c.tenant_id]) acc[c.tenant_id] = []
+      acc[c.tenant_id].push(c)
+      return acc
+    },
+    {}
+  )
 
   let featuresSincronizados = 0
   let campañasOmitidas = 0

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { autenticarRequest, noAutorizado } from '@/lib/api/autenticar'
 
+interface FilaMetrica {
+  gasto_centavos: number | null
+  roas: number | null
+  ctr: number | null
+  cpc: number | null
+  conversiones: number | null
+  cpa: number | null
+  fecha: string | null
+}
+
 // GET /api/metricas — KPI agregados para el tenant
 export async function GET(req: NextRequest) {
   const usuario = await autenticarRequest(req)
@@ -26,12 +36,15 @@ export async function GET(req: NextRequest) {
     if (error) throw error
 
     // Calcular totales
-    const totales = (metricas ?? []).reduce((acc, m) => ({
-      gastoTotal: acc.gastoTotal + (m.gasto_centavos ?? 0),
-      conversionesTotal: acc.conversionesTotal + (m.conversiones ?? 0),
-      roasPromedio: acc.roasPromedio + (m.roas ?? 0),
-      ctrPromedio: acc.ctrPromedio + (m.ctr ?? 0),
-    }), { gastoTotal: 0, conversionesTotal: 0, roasPromedio: 0, ctrPromedio: 0 })
+    const totales = ((metricas ?? []) as FilaMetrica[]).reduce(
+      (acc: { gastoTotal: number; conversionesTotal: number; roasPromedio: number; ctrPromedio: number }, m: FilaMetrica) => ({
+        gastoTotal: acc.gastoTotal + (m.gasto_centavos ?? 0),
+        conversionesTotal: acc.conversionesTotal + (m.conversiones ?? 0),
+        roasPromedio: acc.roasPromedio + (m.roas ?? 0),
+        ctrPromedio: acc.ctrPromedio + (m.ctr ?? 0),
+      }),
+      { gastoTotal: 0, conversionesTotal: 0, roasPromedio: 0, ctrPromedio: 0 }
+    )
 
     const numDias = metricas?.length ?? 1
     return NextResponse.json({
